@@ -442,14 +442,15 @@ export async function adminPortal(identity: DecodedIdToken, rawPayload: unknown)
       if (!assetSnapshot.exists()) throw new ApiError('not-found', 'Asset record not found.')
       const asset = objectValue(assetSnapshot.val())
       if (!['pending_review', 'disputed'].includes(String(asset.ownershipEvidenceStatus))) throw new ApiError('failed-precondition', 'This asset is no longer waiting for an evidence decision.')
-      if (asset.createdByUid === identity.uid) throw new ApiError('permission-denied', 'The person who recorded an asset cannot approve its evidence.')
+      const adminOverride = asset.createdByUid === identity.uid && identity.role === 'platform_administrator'
+      if (asset.createdByUid === identity.uid && !adminOverride) throw new ApiError('permission-denied', 'A verifier cannot approve evidence for an asset they recorded.')
       const now = Date.now()
-      const audit = auditRecord(identity.uid, 'asset_evidence_reviewed', input.data.decision === 'disputed' ? 'Asset marked as disputed' : 'Asset evidence reviewed', input.data.decision === 'disputed' ? 'Disputed' : 'Reviewed', { assetId: input.data.assetId, rationale: input.data.rationale })
+      const audit = auditRecord(identity.uid, 'asset_evidence_reviewed', input.data.decision === 'disputed' ? 'Asset marked as disputed' : 'Asset evidence reviewed', input.data.decision === 'disputed' ? 'Disputed' : 'Reviewed', { assetId: input.data.assetId, rationale: input.data.rationale, adminOverride })
       const nextAsset = { ...asset, ownershipEvidenceStatus: input.data.decision, evidenceRationale: input.data.rationale, reviewedByUid: identity.uid, updatedAt: now, currentVersion: Number(asset.currentVersion ?? 1) + 1 }
       const updates = await projectionUpdates(input.data.tenantId, { [input.data.assetId]: nextAsset }, audit)
       updates[`tenants/${input.data.tenantId}/assets/${input.data.assetId}`] = nextAsset
       updates[`tenants/${input.data.tenantId}/assetVersions/${input.data.assetId}/v${nextAsset.currentVersion}`] = { ...nextAsset, changedByUid: identity.uid, changeReason: input.data.rationale }
-      updates[`tenants/${input.data.tenantId}/reviews/${audit.id}`] = { id: audit.id, assetId: input.data.assetId, decision: input.data.decision, rationale: input.data.rationale, reviewedByUid: identity.uid, createdAt: now }
+      updates[`tenants/${input.data.tenantId}/reviews/${audit.id}`] = { id: audit.id, assetId: input.data.assetId, decision: input.data.decision, rationale: input.data.rationale, reviewedByUid: identity.uid, adminOverride, createdAt: now }
       updates[`tenants/${input.data.tenantId}/audit/${audit.id}`] = audit.record
       await database.ref().update(updates)
       return { updated: true }
