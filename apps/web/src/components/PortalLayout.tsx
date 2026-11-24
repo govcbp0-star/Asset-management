@@ -63,7 +63,6 @@ export function PortalLayout() {
         <div className="sidebar-bottom">
           <Link className="nav-link" to="/disclosures"><CircleHelp size={17} /><span>Service disclosures</span></Link>
           <button className="nav-link signout-link" onClick={handleSignOut}><LogOut size={17} /><span>Sign out</span></button>
-          <div className="sidebar-note"><span className="secure-dot" />Private account<br /><small>Access is permission scoped</small></div>
         </div>
       </aside>
       {menuOpen && <button className="mobile-scrim" onClick={() => setMenuOpen(false)} aria-label="Close navigation" />}
