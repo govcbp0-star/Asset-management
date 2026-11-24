@@ -7,6 +7,11 @@ export default defineConfig({
   // The repository uses one root .env.local shared by the web and trusted tooling.
   envDir: '../..',
   plugins: [react(), tailwindcss()],
+  server: {
+    host: '0.0.0.0',
+    port: Number(process.env.PORT) || 5173,
+    strictPort: Boolean(process.env.PORT),
+  },
   build: {
     rolldownOptions: {
       output: {

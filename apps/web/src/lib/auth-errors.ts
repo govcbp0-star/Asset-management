@@ -2,7 +2,8 @@ import { FirebaseError } from '@firebase/app'
 
 const messages: Record<string, string> = {
   'auth/invalid-credential': 'The email or password is incorrect.',
-  'auth/operation-not-allowed': 'Google sign-in is not enabled for this Firebase project.',
+  'auth/operation-not-allowed': 'This sign-in method is not enabled for this Firebase project. Check Firebase Authentication settings.',
+  'auth/multi-factor-auth-required': 'This Firebase project still requires a second sign-in step. Turn off multi-factor enforcement and remove any enrolled factors to use password-only sign-in.',
   'auth/unauthorized-domain': 'This website domain is not authorized for Firebase sign-in.',
   'auth/popup-closed-by-user': 'The Google sign-in window was closed before sign-in finished.',
   'auth/popup-blocked': 'Your browser blocked the Google sign-in window. Allow popups and try again.',

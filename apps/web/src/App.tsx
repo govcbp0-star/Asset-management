@@ -6,8 +6,6 @@ import { useAuth } from './app/useAuth'
 import { PortalLayout } from './components/PortalLayout'
 import { Spinner } from './components/Spinner'
 import { ContactPage, HomePage, InformationPage } from './pages/PublicPages'
-import { multiFactor } from '@firebase/auth'
-import { firebaseAuth } from './lib/firebase'
 
 const DashboardPage = lazy(() => import('./features/dashboard/DashboardPages').then((module) => ({ default: module.DashboardPage })))
 const FeaturePage = lazy(() => import('./features/dashboard/DashboardPages').then((module) => ({ default: module.FeaturePage })))
@@ -16,7 +14,6 @@ const LoginPage = lazy(() => import('./features/auth/AuthPages').then((module) =
 const RegisterPage = lazy(() => import('./features/auth/AuthPages').then((module) => ({ default: module.RegisterPage })))
 const ResetPasswordPage = lazy(() => import('./features/auth/AuthPages').then((module) => ({ default: module.ResetPasswordPage })))
 const VerifyEmailPage = lazy(() => import('./features/auth/AuthPages').then((module) => ({ default: module.VerifyEmailPage })))
-const MfaSetupPage = lazy(() => import('./features/auth/AuthPages').then((module) => ({ default: module.MfaSetupPage })))
 
 function roleHome(role: string | null) {
   return (role && role in RoleHomePath ? RoleHomePath[role as UserRole] : '/access-denied')
@@ -30,10 +27,6 @@ function AuthenticatedGate() {
   if (!claims.tenantId) return <Navigate to="/register" replace />
   if (!user.emailVerified && pathname !== '/auth/verify-email') return <Navigate to="/auth/verify-email" replace />
   if (user.emailVerified && pathname === '/auth/verify-email') return <Navigate to={roleHome(claims.role)} replace />
-  const staff = Boolean(claims.role && StaffRoles.includes(claims.role as typeof StaffRoles[number]))
-  const mfaEnrolled = user && firebaseAuth ? multiFactor(user).enrolledFactors.length > 0 : false
-  if (user.emailVerified && staff && !mfaEnrolled && pathname !== '/auth/mfa') return <Navigate to="/auth/mfa" replace />
-  if (staff && mfaEnrolled && pathname === '/auth/mfa') return <Navigate to={roleHome(claims.role)} replace />
   return <Outlet />
 }
 
@@ -61,7 +54,6 @@ function AppRoutes() {
     <Route path="/reset-password" element={<ResetPasswordPage />} />
     <Route element={<AuthenticatedGate />}>
       <Route path="/auth/verify-email" element={<VerifyEmailPage />} />
-      <Route path="/auth/mfa" element={<MfaSetupPage />} />
       <Route element={<ClientRoleGate />}>
         <Route element={<PortalLayout />}>
           <Route path="/app/overview" element={<DashboardPage />} />

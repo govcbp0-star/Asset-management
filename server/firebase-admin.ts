@@ -4,6 +4,26 @@ import { getDatabase } from 'firebase-admin/database'
 
 const serverAppName = 'pwarpi-vercel-api'
 
+function serviceAccountCredential(serviceAccountJson: string, projectId: string) {
+  let serviceAccount: Record<string, unknown>
+  try {
+    const parsed: unknown = JSON.parse(serviceAccountJson)
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('not an object')
+    serviceAccount = parsed as Record<string, unknown>
+  } catch {
+    throw new Error('FIREBASE_SERVICE_ACCOUNT_JSON must contain exactly one valid service-account JSON object.')
+  }
+
+  if (serviceAccount.type !== 'service_account' || typeof serviceAccount.project_id !== 'string') {
+    throw new Error('FIREBASE_SERVICE_ACCOUNT_JSON is not a service-account credential.')
+  }
+  if (serviceAccount.project_id !== projectId) {
+    throw new Error('FIREBASE_SERVICE_ACCOUNT_JSON belongs to a different Firebase project.')
+  }
+
+  return cert(serviceAccount)
+}
+
 function getAdminApp() {
   const existing = getApps().find((app) => app.name === serverAppName)
   if (existing) return existing
@@ -20,7 +40,7 @@ function getAdminApp() {
   }
 
   const credential = serviceAccountJson
-    ? cert(JSON.parse(serviceAccountJson))
+    ? serviceAccountCredential(serviceAccountJson, projectId)
     : applicationDefault()
 
   return initializeApp({ credential, projectId, databaseURL }, serverAppName)

@@ -3,9 +3,9 @@ import {
   PortalDashboardSchema,
   type UserRole,
 } from '@pwarpi/shared'
-import { ApiError } from './errors'
-import { getAdminAuth, getAdminDatabase } from './firebase-admin'
-import { requireTenantMember } from './tenant-access'
+import { ApiError } from './errors.js'
+import { getAdminAuth, getAdminDatabase } from './firebase-admin.js'
+import { requireTenantMember } from './tenant-access.js'
 import type { DecodedIdToken } from 'firebase-admin/auth'
 
 export async function createClientTenant(uid: string, rawInput: unknown) {

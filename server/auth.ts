@@ -1,5 +1,5 @@
-import { getAdminAuth } from './firebase-admin'
-import { ApiError } from './errors'
+import { getAdminAuth } from './firebase-admin.js'
+import { ApiError } from './errors.js'
 
 export async function requireAuthenticatedUser(request: Request) {
   const authorization = request.headers.get('authorization')

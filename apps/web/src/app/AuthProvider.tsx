@@ -6,17 +6,13 @@ import {
   createUserWithEmailAndPassword,
   GoogleAuthProvider,
   getIdTokenResult,
-  getMultiFactorResolver,
   onIdTokenChanged,
-  PhoneAuthProvider,
-  PhoneMultiFactorGenerator,
   sendEmailVerification,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signInWithPopup,
   signOut,
   updateProfile,
-  type MultiFactorResolver,
   type User,
 } from '@firebase/auth'
 import { z } from 'zod'
@@ -82,31 +78,15 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   const signIn = useCallback(async (email: string, password: string) => {
     if (!firebaseAuth) throw new Error('Firebase is not configured.')
-    try {
-      await signInWithEmailAndPassword(firebaseAuth, email, password)
-      return null
-    } catch (error) {
-      if ((error as { code?: string })?.code === 'auth/multi-factor-auth-required') {
-        return getMultiFactorResolver(firebaseAuth, error as Parameters<typeof getMultiFactorResolver>[1])
-      }
-      throw error
-    }
+    await signInWithEmailAndPassword(firebaseAuth, email, password)
   }, [])
 
   const signInWithGoogle = useCallback(async () => {
     if (!firebaseAuth) throw new Error('Firebase is not configured.')
     const provider = new GoogleAuthProvider()
     provider.setCustomParameters({ prompt: 'select_account' })
-    try {
-      await signInWithPopup(firebaseAuth, provider)
-      await refreshIdentity()
-      return null
-    } catch (error) {
-      if ((error as { code?: string })?.code === 'auth/multi-factor-auth-required') {
-        return getMultiFactorResolver(firebaseAuth, error as Parameters<typeof getMultiFactorResolver>[1])
-      }
-      throw error
-    }
+    await signInWithPopup(firebaseAuth, provider)
+    await refreshIdentity()
   }, [refreshIdentity])
 
   const register = useCallback(async (email: string, password: string, displayName: string) => {
@@ -115,15 +95,6 @@ export function AuthProvider({ children }: PropsWithChildren) {
     await updateProfile(credential.user, { displayName })
     await refreshIdentity()
   }, [refreshIdentity])
-
-  const completeMultiFactorSignIn = useCallback(async (
-    resolver: MultiFactorResolver,
-    verificationId: string,
-    code: string,
-  ) => {
-    const credential = PhoneAuthProvider.credential(verificationId, code)
-    await resolver.resolveSignIn(PhoneMultiFactorGenerator.assertion(credential))
-  }, [])
 
   const sendVerification = useCallback(async () => {
     if (!firebaseAuth?.currentUser) throw new Error('Sign in to request a verification email.')
@@ -155,14 +126,13 @@ export function AuthProvider({ children }: PropsWithChildren) {
     signIn,
     signInWithGoogle,
     register,
-    completeMultiFactorSignIn,
     sendVerification,
     sendReset,
     completeOnboarding,
     refreshIdentity,
     logOut,
     errorMessage: friendlyError,
-  }), [loading, user, claims, signIn, signInWithGoogle, register, completeMultiFactorSignIn, sendVerification, sendReset, completeOnboarding, refreshIdentity, logOut])
+  }), [loading, user, claims, signIn, signInWithGoogle, register, sendVerification, sendReset, completeOnboarding, refreshIdentity, logOut])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

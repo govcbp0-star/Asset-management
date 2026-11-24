@@ -1,14 +1,16 @@
 {
   "name": "private-wealth-registry",
   "private": true,
+  "type": "module",
   "version": "1.0.0",
   "workspaces": [
     "packages/shared",
     "apps/web"
   ],
   "scripts": {
-    "dev": "npx vercel dev",
+    "dev": "npm run dev:web",
     "dev:web": "npm run dev --workspace @pwarpi/web",
+    "dev:vercel": "npx vercel dev",
     "build": "npm run build:shared && npm run build:api && npm run build:web",
     "build:shared": "npm run build --workspace @pwarpi/shared",
     "build:api": "tsc -p tsconfig.api.json",
@@ -21,16 +23,16 @@
   },
   "dependencies": {
     "@pwarpi/shared": "1.0.0",
-    "firebase-admin": "^13.6.0"
+    "firebase-admin": "^14.5.1"
   },
   "devDependencies": {
     "@firebase/app": "^0.16.7",
     "@firebase/database": "^1.1.6",
     "@firebase/rules-unit-testing": "^5.0.0",
-    "firebase-tools": "^15.37.0",
-    "vitest": "^4.0.8",
     "@types/node": "^24.19.2",
-    "typescript": "~7.0.2"
+    "firebase-tools": "^15.37.0",
+    "typescript": "~7.0.2",
+    "vitest": "^4.0.8"
   },
   "overrides": {
     "@grpc/grpc-js": "^1.14.7"

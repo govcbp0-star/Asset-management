@@ -1,5 +1,5 @@
 import { createContext } from 'react'
-import type { MultiFactorResolver, User } from 'firebase/auth'
+import type { User } from 'firebase/auth'
 
 export interface Claims {
   tenantId: string | null
@@ -11,10 +11,9 @@ export interface AuthContextValue {
   loading: boolean
   user: User | null
   claims: Claims
-  signIn(email: string, password: string): Promise<MultiFactorResolver | null>
-  signInWithGoogle(): Promise<MultiFactorResolver | null>
+  signIn(email: string, password: string): Promise<void>
+  signInWithGoogle(): Promise<void>
   register(email: string, password: string, displayName: string): Promise<void>
-  completeMultiFactorSignIn(resolver: MultiFactorResolver, verificationId: string, code: string): Promise<void>
   sendVerification(): Promise<void>
   sendReset(email: string): Promise<void>
   completeOnboarding(payload: unknown): Promise<string>

@@ -1,7 +1,6 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { PhoneAuthProvider, PhoneMultiFactorGenerator, RecaptchaVerifier, multiFactor } from '@firebase/auth'
-import { ArrowLeft, ArrowRight, Check, Eye, EyeOff, LockKeyhole, Mail, ShieldCheck } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Eye, EyeOff, LockKeyhole, Mail } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { RoleHomePath, type UserRole } from '@pwarpi/shared'
@@ -43,13 +42,10 @@ const LoginSchema = z.object({ email: z.email(), password: z.string().min(1, 'En
 type LoginFields = z.infer<typeof LoginSchema>
 
 export function LoginPage() {
-  const { configured, signIn, signInWithGoogle, completeMultiFactorSignIn, refreshIdentity, errorMessage, user, claims } = useAuth()
+  const { configured, signIn, signInWithGoogle, refreshIdentity, errorMessage, user, claims } = useAuth()
   const navigate = useNavigate()
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
-  const [resolver, setResolver] = useState<Awaited<ReturnType<typeof signIn>>>(null)
-  const [verificationId, setVerificationId] = useState('')
-  const [code, setCode] = useState('')
   const [passwordVisible, setPasswordVisible] = useState(false)
   const { register, handleSubmit, formState: { errors } } = useForm<LoginFields>({ resolver: zodResolver(LoginSchema) })
 
@@ -58,63 +54,30 @@ export function LoginPage() {
   async function submit(values: LoginFields) {
     setBusy(true); setError('')
     try {
-      const result = await signIn(values.email, values.password)
-      if (result) setResolver(result)
-      else navigate(accountPath(firebaseAuth?.currentUser?.emailVerified ?? false, await refreshIdentity()))
+      await signIn(values.email, values.password)
+      navigate(accountPath(firebaseAuth?.currentUser?.emailVerified ?? false, await refreshIdentity()))
     } catch (cause) { setError(errorMessage(cause)) } finally { setBusy(false) }
   }
 
   async function submitGoogle() {
     setBusy(true); setError('')
     try {
-      const result = await signInWithGoogle()
-      if (result) setResolver(result)
-      else navigate(accountPath(firebaseAuth?.currentUser?.emailVerified ?? false, await refreshIdentity()))
+      await signInWithGoogle()
+      navigate(accountPath(firebaseAuth?.currentUser?.emailVerified ?? false, await refreshIdentity()))
     } catch (cause) { setError(errorMessage(cause)) } finally { setBusy(false) }
   }
 
-  async function requestSecondFactor() {
-    if (!firebaseAuth || !resolver) return
-    const hint = resolver.hints.find((factor) => factor.factorId === PhoneMultiFactorGenerator.FACTOR_ID)
-    if (!hint) { setError('No supported second factor is enrolled for this account. Contact your account administrator.'); return }
-    setBusy(true); setError('')
-    try {
-      const verifier = new RecaptchaVerifier(firebaseAuth, 'signin-recaptcha', { size: 'invisible' })
-      const phoneProvider = new PhoneAuthProvider(firebaseAuth)
-      const id = await phoneProvider.verifyPhoneNumber({ multiFactorHint: hint, session: resolver.session }, verifier)
-      setVerificationId(id)
-    } catch (cause) { setError(errorMessage(cause)) } finally { setBusy(false) }
-  }
-
-  async function verifySecondFactor(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    if (!resolver || !verificationId) return
-    setBusy(true); setError('')
-    try {
-      await completeMultiFactorSignIn(resolver, verificationId, code)
-      const nextClaims = await refreshIdentity()
-      navigate(accountPath(firebaseAuth?.currentUser?.emailVerified ?? false, nextClaims))
-    }
-    catch (cause) { setError(errorMessage(cause)) } finally { setBusy(false) }
-  }
-
-  return <AuthFrame eyebrow={resolver ? 'ADDITIONAL VERIFICATION' : 'CLIENT & STAFF PORTAL'} title={resolver ? 'Confirm your identity.' : 'Welcome back.'} description={resolver ? 'Enter the one-time code sent to your enrolled phone.' : 'Sign in to your private account.'}>
+  return <AuthFrame eyebrow="CLIENT & STAFF PORTAL" title="Welcome back." description="Sign in to your private account.">
     {!configured && <FirebaseSetupNotice />}
     {error && <Notice tone="error">{error}</Notice>}
-    {resolver ? <div className="auth-form">
-      {!verificationId ? <><p className="factor-hint">{resolver.hints[0]?.displayName || 'Your enrolled phone'}</p><div id="signin-recaptcha" /><button className="button button-dark button-full" onClick={requestSecondFactor} disabled={busy || !configured}>{busy ? 'Sending code…' : 'Send verification code'} <ArrowRight size={15} /></button></> : <form onSubmit={verifySecondFactor}>
-        <label htmlFor="signin-code">Verification code</label><input id="signin-code" inputMode="numeric" autoComplete="one-time-code" value={code} onChange={(event) => setCode(event.target.value)} required minLength={6} maxLength={8} />
-        <button className="button button-dark button-full" disabled={busy}>{busy ? 'Checking…' : 'Verify and continue'} <ArrowRight size={15} /></button>
-      </form>}
-      <button className="plain-button" onClick={() => { setResolver(null); setVerificationId('') }}>Return to sign in</button>
-    </div> : <form className="auth-form" onSubmit={handleSubmit(submit)}>
+    <form className="auth-form" onSubmit={handleSubmit(submit)}>
       <GoogleSignInButton busy={busy} configured={configured} onClick={submitGoogle} />
       <div className="auth-divider"><span>or sign in with email</span></div>
       <label htmlFor="login-email">Email address</label><div className="input-icon"><Mail size={16} /><input id="login-email" type="email" autoComplete="email" placeholder="you@example.com" {...register('email')} /></div>{errors.email && <small className="field-error">{errors.email.message}</small>}
       <div className="form-label-row"><label htmlFor="login-password">Password</label><Link to="/reset-password">Forgot password?</Link></div><div className="input-icon"><LockKeyhole size={16} /><input id="login-password" type={passwordVisible ? 'text' : 'password'} autoComplete="current-password" placeholder="Enter your password" {...register('password')} /><button type="button" className="reveal-button" onClick={() => setPasswordVisible((visible) => !visible)} aria-label={passwordVisible ? 'Hide password' : 'Show password'}>{passwordVisible ? <EyeOff size={16} /> : <Eye size={16} />}</button></div>{errors.password && <small className="field-error">{errors.password.message}</small>}
       <button className="button button-dark button-full" type="submit" disabled={busy || !configured}>{busy ? 'Signing in…' : 'Sign in securely'} <ArrowRight size={15} /></button>
       <p className="auth-switch">New to Aurelius? <Link to="/register">Create an account</Link></p>
-    </form>}
+    </form>
   </AuthFrame>
 }
 
@@ -190,11 +153,7 @@ export function RegisterPage() {
   async function submitGoogle() {
     setBusy(true); setError('')
     try {
-      const result = await signInWithGoogle()
-      if (result) {
-        setError('This account needs additional verification. Use My account to finish signing in.')
-        return
-      }
+      await signInWithGoogle()
     } catch (cause) { setError(errorMessage(cause)) } finally { setBusy(false) }
   }
 
@@ -276,52 +235,5 @@ export function ResetPasswordPage() {
   return <AuthFrame eyebrow="ACCOUNT RECOVERY" title="Reset your password." description="We will send secure password-reset instructions to your account email.">
     {!configured && <FirebaseSetupNotice />}{message && <Notice tone="success">{message}</Notice>}{error && <Notice tone="error">{error}</Notice>}
     <form className="auth-form" onSubmit={handleSubmit(submit)}><label htmlFor="reset-email">Email address</label><input id="reset-email" type="email" autoComplete="email" placeholder="you@example.com" {...register('email')} />{errors.email && <small className="field-error">{errors.email.message}</small>}<button className="button button-dark button-full" disabled={busy || !configured}>{busy ? 'Sending…' : 'Send reset instructions'} <ArrowRight size={15} /></button></form>
-  </AuthFrame>
-}
-
-export function MfaSetupPage() {
-  const { user, claims, refreshIdentity, errorMessage } = useAuth()
-  const navigate = useNavigate()
-  const enrolled = user && multiFactor(user).enrolledFactors.length > 0
-  const [phone, setPhone] = useState('')
-  const [code, setCode] = useState('')
-  const [verificationId, setVerificationId] = useState('')
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState('')
-  if (!user) return <Navigate to="/login" replace />
-  if (!user.emailVerified) return <Navigate to="/auth/verify-email" replace />
-  if (!claims.tenantId) return <Navigate to="/register" replace />
-  if (claims.role === 'client_owner' || claims.role === 'client_delegate') return <Navigate to="/app/overview" replace />
-  if (enrolled) return <Navigate to="/admin/overview" replace />
-
-  async function sendCode() {
-    if (!firebaseAuth || !user) return
-    setBusy(true); setError('')
-    try {
-      const verifier = new RecaptchaVerifier(firebaseAuth, 'mfa-recaptcha', { size: 'invisible' })
-      const session = await multiFactor(user).getSession()
-      const id = await new PhoneAuthProvider(firebaseAuth).verifyPhoneNumber({ phoneNumber: phone, session }, verifier)
-      setVerificationId(id)
-    } catch (cause) { setError(errorMessage(cause)) } finally { setBusy(false) }
-  }
-
-  async function enroll(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    if (!firebaseAuth || !user || !verificationId) return
-    setBusy(true); setError('')
-    try {
-      const credential = PhoneAuthProvider.credential(verificationId, code)
-      await multiFactor(user).enroll(PhoneMultiFactorGenerator.assertion(credential), 'Staff sign-in phone')
-      await refreshIdentity()
-      navigate('/admin/overview', { replace: true })
-    } catch (cause) { setError(errorMessage(cause)) } finally { setBusy(false) }
-  }
-
-  return <AuthFrame eyebrow="STAFF ACCOUNT SECURITY" title="Add a second sign-in step." description="Staff account access requires multi-factor authentication. Verify a phone number with a one-time code.">
-    {error && <Notice tone="error">{error}</Notice>}
-    <div className="security-callout"><ShieldCheck size={19} /><span>Codes are sent by Firebase Authentication. Phone MFA must be enabled in your Firebase project.</span></div>
-    <div className="auth-form">
-      {!verificationId ? <><label htmlFor="mfa-phone">Phone number with country code</label><input id="mfa-phone" type="tel" autoComplete="tel" placeholder="+1 555 010 1234" value={phone} onChange={(event) => setPhone(event.target.value)} required /><div id="mfa-recaptcha" /><button className="button button-dark button-full" onClick={sendCode} disabled={busy || phone.length < 8}>{busy ? 'Sending code…' : 'Send verification code'} <ArrowRight size={15} /></button></> : <form onSubmit={enroll}><label htmlFor="mfa-code">Verification code</label><input id="mfa-code" inputMode="numeric" autoComplete="one-time-code" value={code} onChange={(event) => setCode(event.target.value)} required minLength={6} maxLength={8} /><button className="button button-dark button-full" disabled={busy}>{busy ? 'Enrolling…' : 'Enable staff MFA'} <Check size={15} /></button></form>}
-    </div>
   </AuthFrame>
 }

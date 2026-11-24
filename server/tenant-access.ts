@@ -1,7 +1,7 @@
 import { UserRoleSchema, type UserRole } from '@pwarpi/shared'
 import type { DecodedIdToken } from 'firebase-admin/auth'
-import { ApiError } from './errors'
-import { getAdminAuth, getAdminDatabase } from './firebase-admin'
+import { ApiError } from './errors.js'
+import { getAdminAuth, getAdminDatabase } from './firebase-admin.js'
 
 export interface AuthorizedMember {
   uid: string
@@ -38,13 +38,6 @@ export async function requireTenantMember(
   const parsedRole = UserRoleSchema.safeParse(membership?.role)
   if (!membership || membership.status !== 'active' || !parsedRole.success || parsedRole.data !== identity.role) {
     throw new ApiError('permission-denied', 'Account membership could not be confirmed.')
-  }
-
-  if (parsedRole.data !== 'client_owner' && parsedRole.data !== 'client_delegate') {
-    const enrolledFactors = user.multiFactor?.enrolledFactors ?? []
-    if (enrolledFactors.length === 0) {
-      throw new ApiError('failed-precondition', 'Staff multi-factor authentication is required.')
-    }
   }
 
   return { uid, tenantId: requestedTenantId, role: parsedRole.data, membership }

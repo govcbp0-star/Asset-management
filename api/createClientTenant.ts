@@ -1,6 +1,6 @@
-import { requireAuthenticatedUser } from '../server/auth'
-import { createClientTenant } from '../server/account-service'
-import { errorResponse, methodNotAllowed, readJson, successResponse } from '../server/errors'
+import { requireAuthenticatedUser } from '../server/auth.js'
+import { createClientTenant } from '../server/account-service.js'
+import { errorResponse, methodNotAllowed, readJson, successResponse } from '../server/errors.js'
 
 export default {
   async fetch(request: Request): Promise<Response> {
