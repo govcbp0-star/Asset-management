@@ -45,6 +45,23 @@ export async function readJson(request: Request): Promise<unknown> {
 }
 
 export function errorResponse(error: unknown): Response {
+  if (!(error instanceof ApiError)) {
+    const details = error && typeof error === 'object'
+      ? error as { code?: unknown }
+      : undefined
+    const message = error instanceof Error ? error.message : String(error)
+    const safeMessage = message
+      .replace(/-----BEGIN PRIVATE KEY-----[\s\S]*?-----END PRIVATE KEY-----/g, '[redacted private key]')
+      .replace(/[A-Za-z0-9+/_=-]{80,}/g, '[redacted value]')
+      .slice(0, 400)
+
+    console.error('[api] Unhandled request error', {
+      name: error instanceof Error ? error.name : 'UnknownError',
+      code: typeof details?.code === 'string' ? details.code.slice(0, 100) : undefined,
+      message: safeMessage,
+    })
+  }
+
   const safeError = error instanceof ApiError
     ? error
     : new ApiError('internal', 'The account service could not complete this request. Try again, and contact support if it continues.')
