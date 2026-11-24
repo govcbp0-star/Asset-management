@@ -1,7 +1,7 @@
 # Client Portal Specification
 
 ## Navigation
-Overview; My Assets; Asset Detail; Portfolio Analytics; Locations; Documents; Reports; Requests & Messages; Notifications; Profile & Security; Organization/Family Access (when enabled).
+Overview; My Assets; Asset Detail; Portfolio Analytics; Locations; Documents; Reports; Requests & Messages; Notifications; Account Information; Beneficiary (account owner only); Settings for account name, profile photo, and password; Organization/Family Access (when enabled).
 
 ## Overview dashboard
 - Greeting, institution branding, client/organization switcher, reporting currency, data-as-of timestamp.

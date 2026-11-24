@@ -73,6 +73,16 @@ export const PortalDashboardSchema = z.object({
 }).strict()
 export type PortalDashboard = z.infer<typeof PortalDashboardSchema>
 
+export const BeneficiarySchema = z.object({
+  id: z.string().regex(/^[A-Za-z0-9_-]{1,80}$/),
+  name: z.string().trim().min(2).max(100),
+  relationship: z.string().trim().min(1).max(60),
+  type: z.enum(['beneficiary', 'next_of_kin']),
+}).strict()
+export type Beneficiary = z.infer<typeof BeneficiarySchema>
+
+export const BeneficiariesSchema = z.array(BeneficiarySchema).max(100)
+
 export const RoleHomePath: Record<UserRole, string> = {
   client_owner: '/app/overview',
   client_delegate: '/app/overview',

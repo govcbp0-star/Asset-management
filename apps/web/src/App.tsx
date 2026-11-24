@@ -10,6 +10,9 @@ import { ContactPage, HomePage, InformationPage } from './pages/PublicPages'
 const DashboardPage = lazy(() => import('./features/dashboard/DashboardPages').then((module) => ({ default: module.DashboardPage })))
 const FeaturePage = lazy(() => import('./features/dashboard/DashboardPages').then((module) => ({ default: module.FeaturePage })))
 const AccessDeniedPage = lazy(() => import('./features/dashboard/DashboardPages').then((module) => ({ default: module.AccessDeniedPage })))
+const AccountInformationPage = lazy(() => import('./features/dashboard/DashboardPages').then((module) => ({ default: module.AccountInformationPage })))
+const BeneficiaryPage = lazy(() => import('./features/dashboard/DashboardPages').then((module) => ({ default: module.BeneficiaryPage })))
+const AccountSettingsPage = lazy(() => import('./features/dashboard/DashboardPages').then((module) => ({ default: module.AccountSettingsPage })))
 const LoginPage = lazy(() => import('./features/auth/AuthPages').then((module) => ({ default: module.LoginPage })))
 const RegisterPage = lazy(() => import('./features/auth/AuthPages').then((module) => ({ default: module.RegisterPage })))
 const ResetPasswordPage = lazy(() => import('./features/auth/AuthPages').then((module) => ({ default: module.ResetPasswordPage })))
@@ -36,6 +39,12 @@ function ClientRoleGate() {
   return <Outlet />
 }
 
+function ClientOwnerGate() {
+  const { claims } = useAuth()
+  if (claims.role !== 'client_owner') return <AccessDeniedPage />
+  return <Outlet />
+}
+
 function StaffRoleGate({ roles }: { roles?: UserRole[] }) {
   const { claims } = useAuth()
   if (!claims.role || !StaffRoles.includes(claims.role as typeof StaffRoles[number])) return <Navigate to={roleHome(claims.role)} replace />
@@ -57,6 +66,12 @@ function AppRoutes() {
       <Route element={<ClientRoleGate />}>
         <Route element={<PortalLayout />}>
           <Route path="/app/overview" element={<DashboardPage />} />
+          <Route path="/app/account-information" element={<AccountInformationPage />} />
+          <Route path="/app/settings" element={<AccountSettingsPage />} />
+          <Route path="/app/settings/security" element={<Navigate to="/app/settings" replace />} />
+          <Route element={<ClientOwnerGate />}>
+            <Route path="/app/beneficiaries" element={<BeneficiaryPage />} />
+          </Route>
           <Route path="/app/assets" element={<FeaturePage title="My assets" description="Browse the assets recorded in your account." />} />
           <Route path="/app/assets/:assetId" element={<FeaturePage title="Asset details" description="Review a record, evidence scope, valuation and history." />} />
           <Route path="/app/analytics" element={<FeaturePage title="Portfolio analytics" description="Explore category, entity and jurisdiction views of your recorded portfolio." />} />
@@ -66,12 +81,13 @@ function AppRoutes() {
           <Route path="/app/requests" element={<FeaturePage title="Requests and messages" description="Follow onboarding, correction, and document requests." />} />
           <Route path="/app/notifications" element={<FeaturePage title="Notifications" description="See private updates about records, requests, and review decisions." />} />
           <Route path="/app/organization" element={<FeaturePage title="Organization and family access" description="Manage legal-owner entities and delegated access to your account." />} />
-          <Route path="/app/settings/security" element={<FeaturePage title="Profile and security" description="Review account security and access settings." />} />
         </Route>
       </Route>
       <Route element={<StaffRoleGate />}>
         <Route element={<PortalLayout />}>
           <Route path="/admin/overview" element={<DashboardPage staff />} />
+          <Route path="/admin/account-information" element={<AccountInformationPage />} />
+          <Route path="/admin/settings" element={<AccountSettingsPage />} />
           <Route path="/admin/clients" element={<StaffRoleGate roles={['compliance_officer', 'platform_administrator']} />}>
             <Route index element={<FeaturePage title="Clients and organizations" description="Review tenant profiles and client onboarding state." />} />
           </Route>
@@ -113,9 +129,6 @@ function AppRoutes() {
           </Route>
           <Route path="/admin/audit" element={<StaffRoleGate roles={['compliance_officer', 'platform_administrator', 'auditor']} />}>
             <Route index element={<FeaturePage title="Audit activity" description="Search authorized account actions and access events." />} />
-          </Route>
-          <Route path="/admin/settings" element={<StaffRoleGate roles={['platform_administrator']} />}>
-            <Route index element={<FeaturePage title="Account settings" description="Review controlled account and security configuration." />} />
           </Route>
         </Route>
       </Route>

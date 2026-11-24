@@ -8,6 +8,7 @@ RTDB is a denormalized JSON tree. Use tenant-scoped indexes and authorization ch
 /userProfiles/{uid}                 # minimal profile, auth uid is source of identity
 /tenants/{tenantId}/profile
 /tenants/{tenantId}/members/{uid}   # membership and limited role metadata
+/tenants/{tenantId}/beneficiaries/{beneficiaryId} # sensitive beneficiary/next-of-kin details; server reads for the client owner only
 /tenants/{tenantId}/entities/{entityId}
 /tenants/{tenantId}/assets/{assetId}
 /tenants/{tenantId}/assetVersions/{assetId}/{versionId}
@@ -21,6 +22,18 @@ RTDB is a denormalized JSON tree. Use tenant-scoped indexes and authorization ch
 /tenants/{tenantId}/audit/{eventId}
 /userTenantIndex/{uid}/{tenantId}   # server-maintained minimal membership index
 ```
+
+Beneficiary records use server-managed IDs and the following minimal display fields:
+
+```json
+{
+  "name": "Example Person",
+  "relationship": "Daughter",
+  "type": "beneficiary"
+}
+```
+
+`type` is either `beneficiary` or `next_of_kin`. Client SDK access remains denied by Realtime Database rules; the account owner reads these records through the authenticated, tenant-scoped server endpoint. No beneficiary create or edit flow is enabled in the current release.
 
 ## Example asset record
 ```json

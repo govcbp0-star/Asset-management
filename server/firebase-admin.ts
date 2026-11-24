@@ -1,6 +1,7 @@
 import { applicationDefault, cert, getApps, initializeApp } from 'firebase-admin/app'
 import { getAuth } from 'firebase-admin/auth'
 import { getDatabase } from 'firebase-admin/database'
+import { getStorage } from 'firebase-admin/storage'
 
 const serverAppName = 'pwarpi-vercel-api'
 
@@ -43,7 +44,12 @@ function getAdminApp() {
     ? serviceAccountCredential(serviceAccountJson, projectId)
     : applicationDefault()
 
-  return initializeApp({ credential, projectId, databaseURL }, serverAppName)
+  return initializeApp({
+    credential,
+    projectId,
+    databaseURL,
+    storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET?.trim(),
+  }, serverAppName)
 }
 
 export function getAdminAuth() {
@@ -52,4 +58,10 @@ export function getAdminAuth() {
 
 export function getAdminDatabase() {
   return getDatabase(getAdminApp())
+}
+
+export function getAdminStorageBucket() {
+  const bucketName = process.env.VITE_FIREBASE_STORAGE_BUCKET?.trim()
+  if (!bucketName) throw new Error('Set the Firebase Storage bucket in the server environment.')
+  return getStorage(getAdminApp()).bucket(bucketName)
 }

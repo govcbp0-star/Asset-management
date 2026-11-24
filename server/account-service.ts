@@ -1,4 +1,6 @@
 import {
+  BeneficiariesSchema,
+  BeneficiarySchema,
   CreateTenantInputSchema,
   PortalDashboardSchema,
   type UserRole,
@@ -158,4 +160,30 @@ export async function getPortalDashboard(identity: DecodedIdToken, rawTenantId: 
     throw new ApiError('data-loss', 'The account dashboard is not available yet.')
   }
   return dashboard.data
+}
+
+export async function getBeneficiaries(identity: DecodedIdToken, rawTenantId: unknown) {
+  const member = await requireTenantMember(identity, rawTenantId)
+  if (member.role !== 'client_owner') {
+    throw new ApiError('permission-denied', 'Beneficiary information is available to the account owner only.')
+  }
+
+  const snapshot = await getAdminDatabase()
+    .ref(`tenants/${member.tenantId}/beneficiaries`)
+    .orderByKey()
+    .limitToFirst(100)
+    .get()
+  const records = snapshot.val() as Record<string, unknown> | null
+  const beneficiaries = Object.entries(records ?? {}).flatMap(([id, value]) => {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return []
+    const record = value as Record<string, unknown>
+    const parsed = BeneficiarySchema.safeParse({
+      id,
+      name: record.name,
+      relationship: record.relationship,
+      type: record.type,
+    })
+    return parsed.success ? [parsed.data] : []
+  })
+  return BeneficiariesSchema.parse(beneficiaries)
 }
