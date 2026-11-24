@@ -56,32 +56,45 @@ export function HomePage() {
     </section>
     <section className="trust-strip"><div><span className="trust-num">01</span><p>Private, permissioned<br />accounts</p></div><div><span className="trust-num">02</span><p>Evidence reviewed<br />with a clear scope</p></div><div><span className="trust-num">03</span><p>Values recorded<br />with source and date</p></div><div><span className="trust-num">04</span><p>History kept<br />with the record</p></div></section>
     <section className="intro-section"><div className="section-label">A MORE ORDERED RECORD</div><div><h2>Complex holdings deserve <em>clear context.</em></h2><p>Property, operating companies, investments, and personal collections rarely sit in one place. Aurelius brings the record together while keeping ownership evidence, valuations, and access history distinct.</p><Link className="text-link dark-link" to="/services">Explore the service <ArrowRight size={15} /></Link></div></section>
+    <section className="asset-types-section">
+      <div className="section-heading"><div><p className="eyebrow"><span className="eyebrow-line" />A BROAD VIEW OF PRIVATE ASSETS</p><h2>Different holdings. <em>One considered record.</em></h2></div><p>Keep each record connected to its legal owner, supporting evidence, and the history that gives it context.</p></div>
+      <div className="asset-types-grid">
+        <article><span className="principle-index">01 / PROPERTY</span><h3>Real estate</h3><p>Record property by name, location, owner entity, and supporting evidence status.</p></article>
+        <article><span className="principle-index">02 / LIQUID ASSETS</span><h3>Cash and investments</h3><p>Keep account and investment records organized within the portfolio register.</p></article>
+        <article><span className="principle-index">03 / ENTERPRISE</span><h3>Business interests</h3><p>Maintain a structured view of business holdings and the entities that own them.</p></article>
+        <article><span className="principle-index">04 / PERSONAL PROPERTY</span><h3>Vehicles and collections</h3><p>Include vehicles, art, collectibles, and other individually described assets.</p></article>
+        <article><span className="principle-index">05 / OWNERSHIP</span><h3>Legal-owner entities</h3><p>Group records by the person or organization shown as their legal owner.</p></article>
+        <article><span className="principle-index">06 / CHANGE HISTORY</span><h3>Values over time</h3><p>Keep valuation amount, currency, effective date, source, and method together.</p></article>
+      </div>
+    </section>
+    <section className="workflow-section">
+      <div className="section-heading"><div><p className="eyebrow"><span className="eyebrow-line" />HOW THE REGISTER WORKS</p><h2>From an entry to <em>a clear status.</em></h2></div><p>Each step adds useful context while keeping the limits of a record visible.</p></div>
+      <div className="workflow-grid">
+        <article><span>01</span><div><h3>Organize the portfolio</h3><p>Assets are recorded against the client account and legal-owner entity, with a category and relevant description.</p></div></article>
+        <article><span>02</span><div><h3>Review the evidence</h3><p>An authorized reviewer records whether evidence was reviewed or needs follow-up, along with a written rationale.</p></div></article>
+        <article><span>03</span><div><h3>Keep the record current</h3><p>Dated valuations and later changes add history, so each value can be understood in its stated context.</p></div></article>
+      </div>
+    </section>
     <section className="principles-section"><div className="section-heading"><div><p className="eyebrow"><span className="eyebrow-line" />A DISCIPLINED APPROACH</p><h2>Trust comes from <em>transparency.</em></h2></div><p>Every status should tell you what was checked, by whom, and on what date.</p></div><div className="principle-grid"><article><span className="principle-index">01 / RECORD</span><h3>One structured register</h3><p>Capture assets against the legal-owner entities that hold them, with the details needed to understand each record.</p></article><article><span className="principle-index">02 / REVIEW</span><h3>Evidence with boundaries</h3><p>Document the sources and scope of a review. An evidence review is never presented as legal title certification.</p></article><article><span className="principle-index">03 / VALUE</span><h3>Values in context</h3><p>Keep the amount, currency, valuation date, source, and method together. A reported value is not a market guarantee.</p></article></div></section>
     <section className="closing-cta"><p className="eyebrow">A PRIVATE VIEW, AT YOUR PACE</p><div><h2>Bring the picture <em>into focus.</em></h2><Link className="button button-light" to="/register">Create account <ArrowRight size={16} /></Link></div></section>
   </main></PublicLayout>
 }
 
 export function ContactPage() {
-  return <PublicLayout><main id="main-content" className="information-page contact-page">
-    <p className="eyebrow"><span className="eyebrow-line" />CONTACT</p>
-    <h1>Start a conversation.</h1>
-    <p className="information-lead">Service availability and onboarding are being established. Public contact details will be published when client service operations are ready.</p>
-    <div className="information-rule" />
-    <div className="contact-grid">
-      <section className="contact-card">
-        <p className="principle-index">ACCOUNT ACCESS</p>
-        <h2>Already have an account?</h2>
-        <p>Sign in to access your private account and services.</p>
-        <Link className="button button-dark" to="/login"><UserRound size={15} /> My account <ArrowRight size={15} /></Link>
-      </section>
-      <section className="contact-card">
-        <p className="principle-index">GENERAL ENQUIRIES</p>
-        <h2>Contact details coming soon</h2>
-        <p>Public contact channels will appear here once client service operations are ready.</p>
-        <p className="contact-note">Please do not send identity documents or private portfolio details through public channels.</p>
-      </section>
-    </div>
-    <aside className="plain-disclaimer"><ShieldCheck size={17} /><p>Records describe information held by the service. The platform does not certify legal title, guarantee valuations, or provide investment advice.</p></aside>
+  return <PublicLayout><main id="main-content" className="contact-page">
+    <section className="contact-hero">
+      <div><p className="eyebrow"><span className="eyebrow-line" />CONTACT AURELIUS</p><h1>Clear routes for account and service questions.</h1><p className="information-lead">Choose the route that fits your enquiry. Account access stays behind sign-in, and service information is available here on the public site.</p></div>
+      <aside className="contact-intro-card"><span className="contact-card-index">CLIENT SERVICES</span><h2>Private by design.<br /><em>Clear in practice.</em></h2><p>We keep account records access-scoped and describe what evidence reviews and valuations establish, along with their limits.</p><Link className="text-link dark-link" to="/disclosures">Read service disclosures <ArrowRight size={15} /></Link></aside>
+    </section>
+    <section className="contact-options-section" aria-labelledby="contact-options-title">
+      <div className="contact-section-heading"><div><p className="eyebrow"><span className="eyebrow-line" />GET THE RIGHT HELP</p><h2 id="contact-options-title">Choose a route</h2></div><p>For your privacy, do not include account credentials or portfolio details in a public enquiry.</p></div>
+      <div className="contact-grid">
+        <section className="contact-card"><p className="principle-index">01 / ACCOUNT ACCESS</p><h3>Manage your account</h3><p>Sign in to review your account, update your profile, or access your private dashboard.</p><Link className="button button-dark" to="/login"><UserRound size={15} /> Sign in securely <ArrowRight size={15} /></Link></section>
+        <section className="contact-card"><p className="principle-index">02 / SERVICE OVERVIEW</p><h3>Understand the registry</h3><p>Learn what the register covers, how records are reviewed, and how status and valuation history are presented.</p><div className="contact-link-row"><Link className="text-link dark-link" to="/services">Services <ArrowRight size={14} /></Link><Link className="text-link dark-link" to="/how-it-works">How it works <ArrowRight size={14} /></Link></div></section>
+        <section className="contact-card"><p className="principle-index">03 / PRIVACY</p><h3>Review privacy and service limits</h3><p>Read the current privacy information and the limits that apply to registry records and evidence review.</p><div className="contact-link-row"><Link className="text-link dark-link" to="/privacy">Privacy <ArrowRight size={14} /></Link><Link className="text-link dark-link" to="/disclosures">Disclosures <ArrowRight size={14} /></Link></div></section>
+      </div>
+    </section>
+    <aside className="contact-availability"><ShieldCheck size={19} /><div><h2>Public enquiry channel</h2><p>A dedicated public email address and telephone number have not been published yet. They will be listed here when client service operations are ready. Please do not send identity documents, passwords, or private portfolio information through unverified channels.</p></div></aside>
   </main></PublicLayout>
 }
 
