@@ -1,0 +1,10 @@
+.git/**
+.firebase/**
+**/node_modules/**
+**/dist/**
+**/.vite/**
+**/.env
+**/.env.*
+**/service-account*.json
+firebase-debug.log
+ui-debug.log

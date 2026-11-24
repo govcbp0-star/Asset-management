@@ -1,0 +1,17 @@
+node_modules/
+**/node_modules/
+**/dist/
+**/lib/
+**/.vite/
+**/coverage/
+.firebase/
+.vercel/
+.agents/
+skills-lock.json
+.env
+.env.*
+!.env.example
+service-account*.json
+firebase-debug.log
+ui-debug.log
+*.tsbuildinfo

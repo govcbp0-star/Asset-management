@@ -1,0 +1,33 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "publicConfig": {
+      ".read": true,
+      ".write": false
+    },
+    "tenants": {
+      "$tenantId": {
+        "assets": {
+          ".read": false,
+          ".write": false,
+          ".indexOn": ["recordStatus", "category", "updatedAt"]
+        },
+        "members": { ".read": false, ".write": false },
+        "entities": { ".read": false, ".write": false },
+        "assetVersions": { ".read": false, ".write": false },
+        "valuations": { ".read": false, ".write": false },
+        "reviews": { ".read": false, ".write": false },
+        "documentMetadata": { ".read": false, ".write": false },
+        "requests": { ".read": false, ".write": false },
+        "notifications": { ".read": false, ".write": false },
+        "accessGrants": { ".read": false, ".write": false },
+        "reports": { ".read": false, ".write": false },
+        "audit": { ".read": false, ".write": false },
+        "readModels": { ".read": false, ".write": false }
+      }
+    },
+    "userProfiles": { "$uid": { ".read": false, ".write": false } },
+    "userTenantIndex": { "$uid": { ".read": false, ".write": false } }
+  }
+}

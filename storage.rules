@@ -1,0 +1,9 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Private document flows are not enabled until a server-authorized upload workflow exists.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
