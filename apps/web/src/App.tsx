@@ -13,6 +13,16 @@ const AccessDeniedPage = lazy(() => import('./features/dashboard/DashboardPages'
 const AccountInformationPage = lazy(() => import('./features/dashboard/DashboardPages').then((module) => ({ default: module.AccountInformationPage })))
 const BeneficiaryPage = lazy(() => import('./features/dashboard/DashboardPages').then((module) => ({ default: module.BeneficiaryPage })))
 const AccountSettingsPage = lazy(() => import('./features/dashboard/DashboardPages').then((module) => ({ default: module.AccountSettingsPage })))
+const AdminOverviewPage = lazy(() => import('./features/dashboard/AdminPages').then((module) => ({ default: module.AdminOverviewPage })))
+const AdminClientsPage = lazy(() => import('./features/dashboard/AdminPages').then((module) => ({ default: module.AdminClientsPage })))
+const AdminClientDetailPage = lazy(() => import('./features/dashboard/AdminPages').then((module) => ({ default: module.AdminClientDetailPage })))
+const AdminAssetsPage = lazy(() => import('./features/dashboard/AdminPages').then((module) => ({ default: module.AdminAssetsPage })))
+const AdminReviewsPage = lazy(() => import('./features/dashboard/AdminPages').then((module) => ({ default: module.AdminReviewsPage })))
+const AdminValuationsPage = lazy(() => import('./features/dashboard/AdminPages').then((module) => ({ default: module.AdminValuationsPage })))
+const AdminOnboardingPage = lazy(() => import('./features/dashboard/AdminPages').then((module) => ({ default: module.AdminOnboardingPage })))
+const AdminAuditPage = lazy(() => import('./features/dashboard/AdminPages').then((module) => ({ default: module.AdminAuditPage })))
+const AdminStaffPage = lazy(() => import('./features/dashboard/AdminPages').then((module) => ({ default: module.AdminStaffPage })))
+const ClientAssetsPage = lazy(() => import('./features/dashboard/AdminPages').then((module) => ({ default: module.ClientAssetsPage })))
 const LoginPage = lazy(() => import('./features/auth/AuthPages').then((module) => ({ default: module.LoginPage })))
 const RegisterPage = lazy(() => import('./features/auth/AuthPages').then((module) => ({ default: module.RegisterPage })))
 const ResetPasswordPage = lazy(() => import('./features/auth/AuthPages').then((module) => ({ default: module.ResetPasswordPage })))
@@ -72,7 +82,7 @@ function AppRoutes() {
           <Route element={<ClientOwnerGate />}>
             <Route path="/app/beneficiaries" element={<BeneficiaryPage />} />
           </Route>
-          <Route path="/app/assets" element={<FeaturePage title="My assets" description="Browse the assets recorded in your account." />} />
+          <Route path="/app/assets" element={<ClientAssetsPage />} />
           <Route path="/app/assets/:assetId" element={<FeaturePage title="Asset details" description="Review a record, evidence scope, valuation and history." />} />
           <Route path="/app/analytics" element={<FeaturePage title="Portfolio analytics" description="Explore category, entity and jurisdiction views of your recorded portfolio." />} />
           <Route path="/app/locations" element={<FeaturePage title="Locations" description="View private location information for assets you are permitted to access." />} />
@@ -85,35 +95,35 @@ function AppRoutes() {
       </Route>
       <Route element={<StaffRoleGate />}>
         <Route element={<PortalLayout />}>
-          <Route path="/admin/overview" element={<DashboardPage staff />} />
+          <Route path="/admin/overview" element={<AdminOverviewPage />} />
           <Route path="/admin/account-information" element={<AccountInformationPage />} />
           <Route path="/admin/settings" element={<AccountSettingsPage />} />
           <Route path="/admin/clients" element={<StaffRoleGate roles={['compliance_officer', 'platform_administrator']} />}>
-            <Route index element={<FeaturePage title="Clients and organizations" description="Review tenant profiles and client onboarding state." />} />
+            <Route index element={<AdminClientsPage />} />
           </Route>
           <Route path="/admin/clients/:id" element={<StaffRoleGate roles={['compliance_officer', 'platform_administrator']} />}>
-            <Route index element={<FeaturePage title="Client profile" description="Review the permitted profile, entity, and service history for a client." />} />
+            <Route index element={<AdminClientDetailPage />} />
           </Route>
           <Route path="/admin/assets" element={<StaffRoleGate roles={['registrar', 'compliance_officer', 'platform_administrator']} />}>
-            <Route index element={<FeaturePage title="Asset register" description="Work with asset drafts and authorized portfolio records." />} />
+            <Route index element={<AdminAssetsPage />} />
           </Route>
           <Route path="/admin/assets/new" element={<StaffRoleGate roles={['registrar', 'platform_administrator']} />}>
-            <Route index element={<FeaturePage title="Create an asset draft" description="Prepare an asset record for a permitted legal-owner entity." />} />
+            <Route index element={<AdminAssetsPage />} />
           </Route>
           <Route path="/admin/assets/:id/edit" element={<StaffRoleGate roles={['registrar', 'platform_administrator']} />}>
-            <Route index element={<FeaturePage title="Edit asset draft" description="Review and update an unapproved asset draft." />} />
+            <Route index element={<AdminAssetsPage />} />
           </Route>
           <Route path="/admin/onboarding" element={<StaffRoleGate roles={['compliance_officer', 'platform_administrator']} />}>
-            <Route index element={<FeaturePage title="Onboarding queue" description="Review account setup status and required follow-up." />} />
+            <Route index element={<AdminOnboardingPage />} />
           </Route>
           <Route path="/admin/reviews" element={<StaffRoleGate roles={['verifier', 'platform_administrator']} />}>
-            <Route index element={<FeaturePage title="Review queue" description="Review assigned evidence with scope, provenance, and rationale." />} />
+            <Route index element={<AdminReviewsPage />} />
           </Route>
           <Route path="/reviewer/queue" element={<StaffRoleGate roles={['verifier', 'platform_administrator']} />}>
-            <Route index element={<FeaturePage title="Assigned reviews" description="Review evidence within your assigned permission scope." />} />
+            <Route index element={<AdminReviewsPage />} />
           </Route>
           <Route path="/admin/valuations" element={<StaffRoleGate roles={['valuation_specialist', 'platform_administrator']} />}>
-            <Route index element={<FeaturePage title="Valuations" description="Record valuation details, source, method, and effective date." />} />
+            <Route index element={<AdminValuationsPage />} />
           </Route>
           <Route path="/admin/documents" element={<StaffRoleGate roles={['registrar', 'verifier', 'compliance_officer', 'platform_administrator']} />}>
             <Route index element={<FeaturePage title="Documents" description="Manage restricted document metadata and review state." />} />
@@ -125,10 +135,10 @@ function AppRoutes() {
             <Route index element={<FeaturePage title="Reports" description="Prepare permission-scoped, dated portfolio summaries." />} />
           </Route>
           <Route path="/admin/staff" element={<StaffRoleGate roles={['platform_administrator']} />}>
-            <Route index element={<FeaturePage title="Staff and roles" description="Review staff assignments and least-privilege permissions." />} />
+            <Route index element={<AdminStaffPage />} />
           </Route>
           <Route path="/admin/audit" element={<StaffRoleGate roles={['compliance_officer', 'platform_administrator', 'auditor']} />}>
-            <Route index element={<FeaturePage title="Audit activity" description="Search authorized account actions and access events." />} />
+            <Route index element={<AdminAuditPage />} />
           </Route>
         </Route>
       </Route>

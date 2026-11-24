@@ -28,6 +28,9 @@
       }
     },
     "userProfiles": { "$uid": { ".read": false, ".write": false } },
-    "userTenantIndex": { "$uid": { ".read": false, ".write": false } }
+    "userTenantIndex": { "$uid": { ".read": false, ".write": false } },
+    "tenantDirectory": { ".read": false, ".write": false },
+    "staffTenantAssignments": { ".read": false, ".write": false },
+    "systemMeta": { ".read": false, ".write": false }
   }
 }

@@ -117,6 +117,14 @@ export async function createClientTenant(uid: string, rawInput: unknown) {
       createdAt: { '.sv': 'timestamp' },
     },
     [`userTenantIndex/${uid}/${tenantId}`]: { role: 'client_owner', status: 'active' },
+    [`tenantDirectory/${tenantId}`]: {
+      ownerUid: uid,
+      displayName: tenantName,
+      kind: tenantType,
+      status: tenantStatus,
+      onboardingStatus: 'pending_review',
+      createdAt: { '.sv': 'timestamp' },
+    },
   }
 
   if (!existingProfile.exists()) await database.ref().update(updates)

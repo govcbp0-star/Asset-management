@@ -19,10 +19,10 @@ apps/web/                 Vite app, public pages, auth flows, role dashboards
   src/app/                routes and guards
   src/components/         shared UI and portal shell
   src/features/auth/      registration, verification, onboarding, MFA, sign-in
-  src/features/dashboard/ client and staff landing dashboards
+  src/features/dashboard/ client and operational staff dashboards
   src/lib/                Firebase client and same-origin API client
-api/                      Vercel API routes for account setup and dashboard reads
-server/                   Admin SDK setup, token verification and authorization
+api/                      Vercel API routes for account setup, dashboards and staff operations
+server/                   Admin SDK setup, token verification, authorization and account workflows
 scripts/                  trusted staff provisioning utility
 functions/                legacy Firebase Functions source retained from initial setup; not deployed or called
 packages/shared/          roles, tenant contracts, dashboard DTOs and Zod schemas
@@ -33,17 +33,19 @@ docs/                     supplied product and architecture blueprint
 
 ## Implementation phases
 
-1. **Foundation, authentication and role dashboards (current):** Vite, Tailwind, routes, email/password and optional Google auth, client account setup before email verification, server-authorized dashboards, and RTDB/Storage default-deny rules.
-2. **Operational MVP:** tenant/client management, asset drafts and revisions, submission/review separation, audit events, valuation history, and correction requests.
+1. **Foundation, authentication and role dashboards:** Vite, routes, email/password and optional Google auth, client account setup, server-authorized dashboards, and RTDB/Storage default-deny rules.
+2. **Operational MVP (current):** staff client directory and onboarding decisions, asset registration, independent evidence decisions, valuation history, audit entries, and client portfolio read models. These operations run through authenticated Vercel APIs.
 3. **Private documents and reporting:** server-authorized uploads/downloads, malware scanning, notifications, scheduled reports, and exports.
 4. **Launch hardening:** emulator and browser security tests, accessibility review, backup/restore procedures, monitoring, and jurisdiction-specific legal/operations signoff.
 
 ## Data contracts
 
 - RTDB tenant path: `/tenants/{tenantId}`. Users map to tenant memberships at `/tenants/{tenantId}/members/{uid}`; server-maintained `/userTenantIndex/{uid}/{tenantId}` supports account administration.
-- Client dashboards come from `/tenants/{tenantId}/readModels/clientOverview/{uid}`. Read models contain only approved aggregates and are returned by the Vercel API after membership checks.
+- Client dashboards come from `/tenants/{tenantId}/readModels/clientOverview/{uid}`. Server-side asset, review, valuation, and onboarding actions refresh these summaries; the Vercel API returns them after checking active membership.
+- `/tenantDirectory/{tenantId}` is a private staff index. Registration creates new entries, and the admin API backfills existing accounts from `/userTenantIndex` once.
 - Account roles are `client_owner`, `client_delegate`, `registrar`, `verifier`, `valuation_specialist`, `compliance_officer`, `platform_administrator`, and `auditor`.
-- Asset lifecycle, evidence review, and valuation status remain separate. Monetary amounts use decimal-safe integer minor-unit strings and explicit currency.
+- Staff can record an asset for an active legal-owner entity, review or dispute pending evidence, add dated valuations, approve onboarding, or request follow-up. Platform administrators can assign operational staff to specific client accounts. Each write creates an audit record and updates the relevant client dashboard. The person who recorded an asset cannot review it.
+- Asset lifecycle, evidence review, and valuation status remain separate. Monetary amounts use decimal-safe integer minor-unit strings and explicit currency. Portfolio totals include only values in the account's reporting currency; other currencies remain visible on their individual records.
 - Onboarding records an acknowledgement of development notice versions only. Production service terms, privacy text, current pricing, and jurisdiction requirements must be reviewed before use.
 
 ## Local development
@@ -88,11 +90,11 @@ The tenant ID is visible in the RTDB console. For local provisioning, authentica
 
 | Threat | Foundation control | Remaining work |
 | --- | --- | --- |
-| Forged browser role or tenant ID | Vercel API checks token claims against active RTDB membership on each request | Add granular entity and asset scopes to each future API route |
+| Forged browser role or tenant ID | Vercel API checks token claims and membership; client reads are tenant-bound; operational staff need an assigned client account | Add finer entity and asset scopes and assignment expiration |
 | Direct client edits or cross-tenant reads | RTDB and Storage default deny; privileged writes use Admin SDK in Vercel API routes | Add emulator rule and API authorization tests before each data feature |
-| Staff self-approval | No asset/review mutation endpoint exists in this phase; roles are provisioned outside the UI | Enforce distinct author/reviewer IDs and state/version checks in phase 2 |
+| Staff self-approval | Evidence review rejects the asset creator and only allows decisions on pending or disputed records | Add concurrency/version checks and independent evidence-file review controls |
 | Account takeover | Verified email; API access is checked against tenant membership and role | Configure recovery/session policy, rate limits, monitoring, and staff step-up controls |
-| Sensitive data exposure | Empty summaries only; no documents or real records seeded; generic errors | Add redaction, private document capabilities, malware scanning, and export audit |
+| Sensitive data exposure | Tenant reads and writes stay server-side; staff routes check role; operational records check client assignments; client asset reads check active membership | Add private document capabilities, malware scanning, and export audit |
 | Audit tampering | Audit entries are written only by trusted Admin SDK paths; client rules deny writes | Add immutable external export and retention controls |
 
 ## Assumptions and unfinished scope
@@ -100,4 +102,4 @@ The tenant ID is visible in the RTDB console. For local provisioning, authentica
 - USD is the initial empty-account reporting currency until a tenant settings flow exists.
 - One primary tenant is supported per client login in this foundation. Delegated access and multi-entity consolidation require later grant and ownership-graph work.
 - The supplied guidance calls out Ghana among possible jurisdictions, but service location and legal scope are unresolved; the app makes no licensing, legal-title, or jurisdictional compliance claim.
-- Dashboards contain real zero-state data until secure asset workflows write read models. There is no demo seed data or external registry integration in this phase.
+- Dashboards contain zero-state data until staff record assets or valuations. There is no demo seed data or external registry integration. Asset files, client correction requests, staff assignment management, notifications, scheduled reports, and immutable audit export are not implemented yet.

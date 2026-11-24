@@ -30,6 +30,7 @@ export function PortalLayout() {
     { to: '/admin/valuations', label: 'Valuations', icon: Activity, roles: ['valuation_specialist', 'platform_administrator'] },
     { to: '/admin/onboarding', label: 'Onboarding', icon: Users, roles: ['compliance_officer', 'platform_administrator'] },
     { to: '/admin/audit', label: 'Audit activity', icon: Activity, roles: ['compliance_officer', 'platform_administrator', 'auditor'] },
+    { to: '/admin/staff', label: 'Staff access', icon: ShieldCheck, roles: ['platform_administrator'] },
   ]
   const links: PortalLink[] = isClient
     ? clientLinks
