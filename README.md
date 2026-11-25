@@ -63,7 +63,7 @@ docs/                     supplied product and architecture blueprint
    npm test
    ```
 
-4. Start the web client with `npm run dev`. For the complete local app with Vercel API routes, run `npm run dev:vercel`; it uses the Vite workspace command from `vercel.json`. Both connect to the real services named in `.env.local`; there is no emulator startup step.
+4. Start the complete local app with `npm run dev`. This runs `vercel dev`, which serves both the Vite client and the API routes; `vercel.json` starts the client with `npm run dev:web` to avoid recursively invoking Vercel. To run only the frontend without API routes, use `npm run dev:web`. Both modes connect to the real services named in `.env.local`; there is no emulator startup step.
 
 The repository does not include your real Firebase values. `VITE_` values are public web configuration, not service-account secrets. The server reads the same `VITE_FIREBASE_PROJECT_ID` and `VITE_FIREBASE_DATABASE_URL` values. `FIREBASE_SERVICE_ACCOUNT_JSON` is a server-only Admin SDK credential: set it in Vercel Project Environment Variables, never in a `VITE_` variable or a committed file. For local API use, `GOOGLE_APPLICATION_CREDENTIALS` may point to a protected credential file outside the repository. The RTDB and Storage rules continue to deny direct browser access by default. An optional server-only `CONTACT_RATE_LIMIT_SECRET` can override the rate-limit HMAC key derived from the Firebase service-account private key.
 

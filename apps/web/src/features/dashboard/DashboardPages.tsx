@@ -1,14 +1,24 @@
-import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
-import { Activity, ArrowDownRight, ArrowRight, ArrowUpRight, BriefcaseBusiness, CalendarDays, Camera, ChartNoAxesCombined, CircleAlert, Clock3, FileCheck2, KeyRound, RefreshCw, ShieldCheck, UsersRound } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
+import { ArrowRight, BriefcaseBusiness, CalendarDays, Camera, ChartNoAxesCombined, CheckCircle2, ChevronRight, CircleAlert, Clock3, FileCheck2, KeyRound, Mail, MapPin, RefreshCw, ShieldCheck, UsersRound } from 'lucide-react'
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts'
-import type { Beneficiary, PortalDashboard, UserRole } from '@pwarpi/shared'
-import { getBeneficiaries, getPortalDashboard } from '../../lib/dashboard-api'
+import type { Beneficiary, ClientAsset, PortalDashboard, UserRole } from '@pwarpi/shared'
+import { getBeneficiaries, getClientAssets, getPortalDashboard } from '../../lib/dashboard-api'
 import { useAuth } from '../../app/useAuth'
 import { Notice } from '../../components/Notice'
 import { Spinner } from '../../components/Spinner'
 import { friendlyError } from '../../lib/auth-errors'
+import { Link } from 'react-router-dom'
 
 const chartColors = ['#ad8951', '#263b4b', '#7491a1', '#cfc4ad', '#526570', '#9c9c91']
+const assetCategoryLabels: Record<ClientAsset['category'], string> = {
+  real_estate: 'Real estate',
+  cash_and_deposits: 'Cash and deposits',
+  investments: 'Investments',
+  business_interests: 'Business interests',
+  vehicles: 'Vehicles',
+  art_and_collectibles: 'Art and collections',
+  other: 'Other assets',
+}
 
 function moneyFromMinor(minor: string, currency: string): string {
   try {
@@ -37,6 +47,13 @@ function allocationShares(dashboard: PortalDashboard) {
   }))
 }
 
+function fetchClientOverview(tenantId: string | null) {
+  return Promise.allSettled([
+    getPortalDashboard(tenantId ?? ''),
+    getClientAssets(tenantId ?? ''),
+  ] as const)
+}
+
 function PageHeader({ eyebrow, title, subtitle, action }: { eyebrow: string; title: string; subtitle: string; action?: ReactNode }) {
   return <div className="page-header"><div><p className="eyebrow"><span className="eyebrow-line" />{eyebrow}</p><h1>{title}</h1><p className="page-subtitle">{subtitle}</p></div>{action}</div>
 }
@@ -48,64 +65,104 @@ function MetricCard({ label, value, detail, icon: Icon, accent = false }: { labe
 export function DashboardPage({ staff = false }: { staff?: boolean }) {
   const { claims } = useAuth()
   const [dashboard, setDashboard] = useState<PortalDashboard | null>(null)
+  const [assets, setAssets] = useState<ClientAsset[]>([])
   const [loading, setLoading] = useState(true)
+  const [assetsLoading, setAssetsLoading] = useState(true)
   const [error, setError] = useState('')
+  const [assetsError, setAssetsError] = useState('')
   const tenantId = claims.tenantId
   const role = (claims.role ?? 'client_owner') as UserRole
   const allocations = useMemo(() => dashboard ? allocationShares(dashboard) : [], [dashboard])
 
+  const load = useCallback(async () => {
+    setLoading(true); setAssetsLoading(true)
+    const [dashboardResult, assetsResult] = await fetchClientOverview(tenantId)
+    if (dashboardResult.status === 'fulfilled') { setDashboard(dashboardResult.value); setError('') }
+    else setError(friendlyError(dashboardResult.reason))
+    if (assetsResult.status === 'fulfilled') { setAssets(assetsResult.value); setAssetsError('') }
+    else setAssetsError(friendlyError(assetsResult.reason))
+    setLoading(false)
+    setAssetsLoading(false)
+  }, [tenantId])
+
   useEffect(() => {
     let active = true
-    getPortalDashboard(tenantId ?? '').then((result) => {
-      if (active) { setDashboard(result); setError('') }
-    }).catch((cause: unknown) => {
-      if (active) setError(friendlyError(cause))
-    }).finally(() => {
-      if (active) setLoading(false)
+    void fetchClientOverview(tenantId).then(([dashboardResult, assetsResult]) => {
+      if (!active) return
+      if (dashboardResult.status === 'fulfilled') { setDashboard(dashboardResult.value); setError('') }
+      else setError(friendlyError(dashboardResult.reason))
+      if (assetsResult.status === 'fulfilled') { setAssets(assetsResult.value); setAssetsError('') }
+      else setAssetsError(friendlyError(assetsResult.reason))
+      setLoading(false)
+      setAssetsLoading(false)
     })
     return () => { active = false }
   }, [tenantId])
-
-  async function load() {
-    setLoading(true); setError('')
-    try { setDashboard(await getPortalDashboard(tenantId ?? '')) }
-    catch (cause) { setError(friendlyError(cause)) } finally { setLoading(false) }
-  }
 
   if (loading) return <div className="dashboard-loading"><Spinner label="Loading your account" /></div>
   if (error) return <><PageHeader eyebrow={staff ? 'OPERATIONS' : 'PRIVATE CLIENT PORTAL'} title={staff ? 'Operations overview' : 'Portfolio overview'} subtitle="A secure view of your account." /><Notice tone="error">{error}</Notice><button className="button button-outline retry-button" onClick={() => void load()}><RefreshCw size={15} /> Try again</button></>
   if (!dashboard) return null
 
-  const greeting = staff ? 'Operations at a glance.' : `Welcome, ${dashboard.tenantName}.`
   const value = dashboard.grossRegisteredValueMinor === null ? 'Not yet available' : moneyFromMinor(dashboard.grossRegisteredValueMinor, dashboard.reportingCurrency)
   const dateLabel = dashboard.asOf > 0 ? new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(dashboard.asOf) : null
+  const recentAssets = [...assets].sort((left, right) => right.updatedAt - left.updatedAt).slice(0, 3)
+  const valuedAssets = assets.filter((asset) => asset.latestValuation).length
+  const valuationCoverage = assetsError ? 'Not available' : `${valuedAssets} of ${assets.length} assets`
+  const clientStatusLabel = dashboard.tenantStatus === 'active' ? 'Account active' : dashboard.tenantStatus === 'suspended' ? 'Account paused' : 'Account under review'
 
-  return <>
-    <PageHeader eyebrow={staff ? 'OPERATIONS' : 'PRIVATE CLIENT PORTAL'} title={staff ? 'Operations overview' : greeting} subtitle={staff ? `Account for ${dashboard.tenantName}. Review access and current record activity.` : 'Your records, evidence status, and valuation details in one private view.'} />
-    {dashboard.tenantStatus !== 'active' && <Notice tone="info">Your account is being reviewed. Asset registration and staff-managed services are not active yet.</Notice>}
-    <section className="metrics-grid" aria-label="Portfolio summary">
-      <MetricCard label="Registered gross asset value" value={value} detail={dashboard.grossRegisteredValueMinor === null ? 'Available after records are reviewed' : `As of ${dateLabel ?? 'the latest update'}`} icon={ChartNoAxesCombined} accent />
-      <MetricCard label="Assets recorded" value={dashboard.counts.totalAssets.toLocaleString()} detail="Current account register" icon={BriefcaseBusiness} />
-      <MetricCard label="Evidence reviewed" value={dashboard.counts.evidenceReviewed.toLocaleString()} detail="Ownership evidence status" icon={FileCheck2} />
-      <MetricCard label="Needs attention" value={(dashboard.counts.pendingReview + dashboard.counts.disputed).toLocaleString()} detail={`${dashboard.counts.pendingReview} pending · ${dashboard.counts.disputed} disputed`} icon={CircleAlert} />
+  return <div className="client-dashboard">
+    <section className="client-welcome-banner">
+      <div className="client-welcome-copy">
+        <h1>Welcome back,<span>{dashboard.tenantName}</span></h1>
+        <p>Your asset register, review status, and account activity.</p>
+      </div>
+      <div className="client-welcome-aside" role="group" aria-label="Account status and reporting details">
+        <div className="client-welcome-aside-header">
+          <p className="panel-kicker">Account status</p>
+          <button className="button button-outline client-refresh-button" onClick={() => void load()} disabled={loading} aria-label="Refresh dashboard"><RefreshCw size={14} /> Refresh</button>
+        </div>
+        <strong><span className={`client-status-dot client-status-${dashboard.tenantStatus}`} />{clientStatusLabel}</strong>
+        <span>{dashboard.tenantType.replaceAll('_', ' ')} account</span>
+        <span>Reporting currency: {dashboard.reportingCurrency}</span>
+        {dateLabel && <small>Last updated {dateLabel}</small>}
+      </div>
     </section>
-    <div className="dashboard-grid">
-      <section className="dashboard-panel allocation-panel"><div className="panel-heading"><div><p className="panel-kicker">PORTFOLIO COMPOSITION</p><h2>Asset allocation</h2></div><span className="panel-asof">{dateLabel ? `As of ${dateLabel}` : 'Awaiting records'}</span></div>
-        {allocations.length ? <div className="allocation-content"><div className="allocation-chart" role="img" aria-label={`Asset allocation chart with ${allocations.length} categories`}><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={allocations} dataKey="share" nameKey="label" innerRadius={62} outerRadius={88} paddingAngle={3} stroke="none">{allocations.map((entry, index) => <Cell key={entry.category} fill={chartColors[index % chartColors.length]} />)}</Pie><Tooltip formatter={(share) => `${share}%`} /></PieChart></ResponsiveContainer></div><ul className="allocation-legend">{allocations.map((entry, index) => <li key={entry.category}><span className="legend-dot" style={{ backgroundColor: chartColors[index % chartColors.length] }} /><span>{entry.label}</span><strong>{entry.share.toFixed(1)}%</strong></li>)}</ul></div> : <div className="panel-empty"><div className="empty-icon"><ChartNoAxesCombined size={20} /></div><h3>No allocation data yet</h3><p>Asset categories will appear here after authorized staff records assets in your account.</p></div>}
+    {dashboard.tenantStatus !== 'active' && <Notice tone="info">Your account is being reviewed. Asset registration and staff-managed services are not active yet.</Notice>}
+    <section className="metrics-grid client-metrics-grid" aria-label="Portfolio summary">
+      <MetricCard label="Registered asset value" value={value} detail={dashboard.grossRegisteredValueMinor === null ? 'Reported values appear when available' : `Reported in ${dashboard.reportingCurrency}`} icon={ChartNoAxesCombined} accent />
+      <MetricCard label="Total assets" value={dashboard.counts.totalAssets.toLocaleString()} detail="In your current register" icon={BriefcaseBusiness} />
+      <MetricCard label="Evidence reviewed" value={dashboard.counts.evidenceReviewed.toLocaleString()} detail="Marked reviewed by staff" icon={FileCheck2} />
+      <MetricCard label="Pending review" value={dashboard.counts.pendingReview.toLocaleString()} detail={`${dashboard.counts.disputed} disputed records`} icon={CircleAlert} />
+    </section>
+    <section className="dashboard-panel client-allocation-panel">
+      <div className="panel-heading"><h2>Portfolio allocation</h2><span className="panel-asof">{dateLabel ? `As of ${dateLabel}` : 'Awaiting records'}</span></div>
+      {allocations.length ? <div className="client-allocation-content">
+        <div className="allocation-chart client-allocation-chart" role="img" aria-label={`Asset allocation chart with ${allocations.length} categories`}><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={allocations} dataKey="share" nameKey="label" innerRadius="68%" outerRadius="95%" paddingAngle={3} stroke="none">{allocations.map((entry, index) => <Cell key={entry.category} fill={chartColors[index % chartColors.length]} />)}</Pie><Tooltip formatter={(share) => `${share}%`} /></PieChart></ResponsiveContainer><div className="allocation-center"><strong>{allocations.reduce((sum, entry) => sum + entry.share, 0).toFixed(0)}%</strong><span>reported<br />allocation</span></div></div>
+        <ul className="allocation-legend">{allocations.map((entry, index) => <li key={entry.category}><span className="legend-dot" style={{ backgroundColor: chartColors[index % chartColors.length] }} /><span>{entry.label}</span><strong>{entry.share.toFixed(1)}%</strong></li>)}</ul>
+        <aside className="client-allocation-context"><p className="panel-kicker">Valuation coverage</p><strong>{valuationCoverage}</strong><p>{assetsError ? 'Valuation coverage could not be loaded.' : 'Assets with a recorded valuation. Each value keeps its stated currency and date.'}</p><Link className="text-link dark-link" to="/app/assets">Review my assets</Link></aside>
+      </div> : <div className="client-allocation-empty"><h3>Portfolio breakdown is not available yet</h3><p>A breakdown appears when at least one asset has a recorded valuation in {dashboard.reportingCurrency}. Values in other currencies stay separate.</p><Link className="text-link dark-link" to="/app/assets">View my assets</Link></div>}
+    </section>
+    <section className="dashboard-panel client-assets-panel">
+      <div className="panel-heading"><h2>Recently updated assets</h2><Link className="button button-outline client-view-all" to="/app/assets">View all assets</Link></div>
+      {assetsError && <Notice tone="error">{assetsError}</Notice>}
+      {assetsLoading ? <div className="client-assets-loading"><Spinner label="Loading your assets" /></div> : recentAssets.length ? <div className="client-asset-list">{recentAssets.map((asset) => {
+        const reviewLabel = asset.ownershipEvidenceStatus === 'evidence_reviewed' ? 'Evidence reviewed' : asset.ownershipEvidenceStatus === 'disputed' ? 'Disputed' : 'Pending review'
+        const reviewClass = asset.ownershipEvidenceStatus === 'evidence_reviewed' ? 'reviewed' : asset.ownershipEvidenceStatus === 'disputed' ? 'disputed' : 'pending'
+        return <Link className="client-asset-row" to="/app/assets" key={asset.id}>
+          <span className="client-asset-icon"><BriefcaseBusiness size={20} /></span>
+          <span className="client-asset-details"><span className={`client-asset-status client-asset-status-${reviewClass}`}>{asset.ownershipEvidenceStatus === 'evidence_reviewed' ? <CheckCircle2 size={12} /> : asset.ownershipEvidenceStatus === 'disputed' ? <CircleAlert size={12} /> : <Clock3 size={12} />}{reviewLabel}</span><strong>{asset.name}</strong><span className="client-asset-meta"><span><MapPin size={12} />{asset.location || 'Location not recorded'}</span><span><BriefcaseBusiness size={11} />{assetCategoryLabels[asset.category]}</span>{asset.latestValuation && <span><CalendarDays size={12} />Valued {formatAccountDate(asset.latestValuation.asOfDate)}</span>}</span></span>
+          <span className="client-asset-value">{asset.latestValuation ? moneyFromMinor(asset.latestValuation.amountMinor, asset.latestValuation.currency) : <small>Not yet valued</small>}<ChevronRight size={17} /></span>
+        </Link>
+      })}</div> : <div className="client-assets-empty"><div className="empty-icon"><BriefcaseBusiness size={20} /></div><div><h3>No assets recorded yet</h3><p>Assets added to your account by authorized staff will appear here.</p></div></div>}
+    </section>
+    <div className="dashboard-grid dashboard-grid-bottom client-dashboard-bottom">
+      <section className="dashboard-panel activity-panel"><div className="panel-heading"><h2>Recent activity</h2></div>
+        {dashboard.recentActivity.length ? <ol className="activity-list">{dashboard.recentActivity.slice(0, 4).map((item) => <li key={item.id}><span className="activity-marker" /><div><strong>{item.label}</strong><span>{item.status}</span></div><time dateTime={new Date(item.occurredAt).toISOString()}>{new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(item.occurredAt)}</time></li>)}</ol> : <div className="compact-empty"><p>No recent changes</p><span>Activity will appear here when records are added or reviewed.</span></div>}
       </section>
-      <section className="dashboard-panel status-panel"><div className="panel-heading"><div><p className="panel-kicker">RECORD QUALITY</p><h2>Status overview</h2></div><ShieldCheck size={18} className="panel-heading-icon" /></div>
-        <ul className="status-list"><li><span className="status-mark status-reviewed"><FileCheck2 size={15} /></span><span>Evidence reviewed</span><strong>{dashboard.counts.evidenceReviewed}</strong></li><li><span className="status-mark status-pending"><Clock3 size={15} /></span><span>Pending review</span><strong>{dashboard.counts.pendingReview}</strong></li><li><span className="status-mark status-disputed"><CircleAlert size={15} /></span><span>Disputed records</span><strong>{dashboard.counts.disputed}</strong></li><li><span className="status-mark status-stale"><CalendarDays size={15} /></span><span>Stale valuations</span><strong>{dashboard.counts.staleValuations}</strong></li></ul>
-        <div className="status-note"><ArrowDownRight size={15} /><span>Ownership evidence and valuation status are recorded separately.</span></div>
-      </section>
-    </div>
-    <div className="dashboard-grid dashboard-grid-bottom">
-      <section className="dashboard-panel activity-panel"><div className="panel-heading"><div><p className="panel-kicker">ACCOUNT HISTORY</p><h2>Recent activity</h2></div><Activity size={18} className="panel-heading-icon" /></div>
-        {dashboard.recentActivity.length ? <ol className="activity-list">{dashboard.recentActivity.map((item) => <li key={item.id}><span className="activity-marker" /><div><strong>{item.label}</strong><span>{item.status}</span></div><time dateTime={new Date(item.occurredAt).toISOString()}>{new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(item.occurredAt)}</time></li>)}</ol> : <div className="compact-empty"><p>No recent changes</p><span>Activity will appear here when records are added or reviewed.</span></div>}
-      </section>
-      <section className="dashboard-panel attention-panel"><p className="panel-kicker">A NOTE ON THIS SUMMARY</p><h2>Context matters.</h2><p>Registered gross value is a record of reported asset values. It is not net worth and may not account for ownership percentages, liabilities, layered entities, or currency conversion.</p><div className="attention-link"><span><ArrowUpRight size={14} /></span><span>Review your service disclosures</span></div></section>
+      <section className="dashboard-panel attention-panel client-security-panel"><span className="client-security-icon"><ShieldCheck size={24} /></span><h2>What an evidence review means</h2><p>A reviewed label records the staff decision on submitted evidence. It does not certify legal title or guarantee a valuation.</p><div className="client-security-links"><Link to="/disclosures"><ShieldCheck size={14} /> Service disclosures</Link><Link to="/contact"><Mail size={14} /> Contact support</Link></div></section>
     </div>
     {staff && <div className="staff-access-note"><span><ShieldCheck size={16} /></span><p><strong>{role.replaceAll('_', ' ')}</strong> access is limited to the account permissions assigned by a trusted administrator. Sensitive access is logged.</p></div>}
-  </>
+  </div>
 }
 
 export function FeaturePage({ title, description }: { title: string; description: string }) {
