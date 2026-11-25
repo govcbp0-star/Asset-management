@@ -206,6 +206,31 @@ export const AdminStaffUserSchema = z.object({
 export type AdminStaffUser = z.infer<typeof AdminStaffUserSchema>
 export const AdminStaffUsersSchema = z.array(AdminStaffUserSchema).max(500)
 
+export const PublicEnquiryInputSchema = z.object({
+  name: z.string().trim().min(2).max(100),
+  email: z.string().trim().email().max(254),
+  message: z.string().trim().min(15).max(3000),
+  website: z.string().max(200).default(''),
+}).strict()
+export type PublicEnquiryInput = z.infer<typeof PublicEnquiryInputSchema>
+
+export const AdminEnquirySchema = z.object({
+  id: z.string().regex(/^[A-Za-z0-9_-]{1,128}$/),
+  name: z.string().max(100),
+  email: z.string().email().max(254),
+  message: z.string().max(3000),
+  receivedAt: z.number().int().nonnegative(),
+  updatedAt: z.number().int().nonnegative(),
+  status: z.enum(['new', 'read', 'resolved']),
+}).strict()
+export type AdminEnquiry = z.infer<typeof AdminEnquirySchema>
+export const AdminEnquiriesSchema = z.array(AdminEnquirySchema).max(200)
+
+export const UpdateAdminEnquiryStatusInputSchema = z.object({
+  id: z.string().regex(/^[A-Za-z0-9_-]{1,128}$/),
+  status: z.enum(['new', 'read', 'resolved']),
+}).strict()
+
 export const RoleHomePath: Record<UserRole, string> = {
   client_owner: '/app/overview',
   client_delegate: '/app/overview',

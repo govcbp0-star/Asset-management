@@ -36,6 +36,26 @@ export async function postApi<T>(path: string, payload: unknown): Promise<T> {
   return result as T
 }
 
+export async function postPublicApi<T>(path: string, payload: unknown): Promise<T> {
+  let response: Response
+  try {
+    response = await fetch(path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+  } catch {
+    throw new Error('The enquiry service could not be reached. Check your connection and try again.')
+  }
+
+  const result: unknown = await response.json().catch(() => null)
+  if (!response.ok) {
+    const message = (result as ApiErrorPayload | null)?.error?.message
+    throw new Error(typeof message === 'string' ? message : 'The enquiry could not be sent. Please try again.')
+  }
+  return result as T
+}
+
 export async function postApiForm<T>(path: string, formData: FormData): Promise<T> {
   const user = firebaseAuth?.currentUser
   if (!user) throw new Error('Sign in to continue.')

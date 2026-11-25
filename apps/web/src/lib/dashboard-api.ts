@@ -1,4 +1,5 @@
 import {
+  AdminEnquiriesSchema,
   AdminAssetsSchema,
   AdminClientDetailSchema,
   AdminClientsSchema,
@@ -8,6 +9,7 @@ import {
   ClientAssetsSchema,
   PortalDashboardSchema,
   type AdminAsset,
+  type AdminEnquiry,
   type AdminClient,
   type AdminClientDetail,
   type AdminOverview,
@@ -73,6 +75,14 @@ export async function getAdminAudit(tenantId: string): Promise<Array<Record<stri
 
 export async function getAdminStaff(): Promise<AdminStaffUser[]> {
   return AdminStaffUsersSchema.parse(await adminAction('staffDirectory'))
+}
+
+export async function getAdminEnquiries(): Promise<AdminEnquiry[]> {
+  return AdminEnquiriesSchema.parse(await adminAction('contactMessages'))
+}
+
+export async function updateAdminEnquiryStatus(payload: { id: string; status: 'new' | 'read' | 'resolved' }): Promise<{ updated: boolean }> {
+  return adminAction<{ updated: boolean }>('contactMessageStatus', payload)
 }
 
 export async function setAdminStaffAssignment(payload: { staffUid: string; tenantId: string; assigned: boolean }): Promise<{ updated: boolean; clientName: string }> {

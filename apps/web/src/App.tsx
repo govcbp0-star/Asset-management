@@ -21,6 +21,7 @@ const AdminReviewsPage = lazy(() => import('./features/dashboard/AdminPages').th
 const AdminValuationsPage = lazy(() => import('./features/dashboard/AdminPages').then((module) => ({ default: module.AdminValuationsPage })))
 const AdminOnboardingPage = lazy(() => import('./features/dashboard/AdminPages').then((module) => ({ default: module.AdminOnboardingPage })))
 const AdminAuditPage = lazy(() => import('./features/dashboard/AdminPages').then((module) => ({ default: module.AdminAuditPage })))
+const AdminMessagesPage = lazy(() => import('./features/dashboard/AdminPages').then((module) => ({ default: module.AdminMessagesPage })))
 const AdminStaffPage = lazy(() => import('./features/dashboard/AdminPages').then((module) => ({ default: module.AdminStaffPage })))
 const ClientAssetsPage = lazy(() => import('./features/dashboard/AdminPages').then((module) => ({ default: module.ClientAssetsPage })))
 const LoginPage = lazy(() => import('./features/auth/AuthPages').then((module) => ({ default: module.LoginPage })))
@@ -136,6 +137,9 @@ function AppRoutes() {
           </Route>
           <Route path="/admin/staff" element={<StaffRoleGate roles={['platform_administrator']} />}>
             <Route index element={<AdminStaffPage />} />
+          </Route>
+          <Route path="/admin/messages" element={<StaffRoleGate roles={['platform_administrator']} />}>
+            <Route index element={<AdminMessagesPage />} />
           </Route>
           <Route path="/admin/audit" element={<StaffRoleGate roles={['compliance_officer', 'platform_administrator', 'auditor']} />}>
             <Route index element={<AdminAuditPage />} />

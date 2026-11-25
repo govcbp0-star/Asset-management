@@ -1,4 +1,6 @@
 import {
+  AdminEnquiriesSchema,
+  AdminEnquirySchema,
   AdminAssetSchema,
   AdminClientDetailSchema,
   AdminClientSchema,
@@ -9,6 +11,7 @@ import {
   ReviewAdminAssetInputSchema,
   StaffRoleSchema,
   UpdateAdminOnboardingInputSchema,
+  UpdateAdminEnquiryStatusInputSchema,
   type AdminAsset,
   type AdminClient,
   type AssetCategory,
@@ -20,7 +23,7 @@ import { requireTenantMember } from './tenant-access.js'
 import { z } from 'zod'
 
 const staffActionSchema = z.object({
-  action: z.enum(['overview', 'clients', 'client', 'tenantOptions', 'assets', 'createAsset', 'reviewAsset', 'recordValuation', 'onboarding', 'audit', 'staffDirectory', 'staffAssignment']),
+  action: z.enum(['overview', 'clients', 'client', 'tenantOptions', 'assets', 'createAsset', 'reviewAsset', 'recordValuation', 'onboarding', 'audit', 'staffDirectory', 'staffAssignment', 'contactMessages', 'contactMessageStatus']),
 }).passthrough()
 
 const tenantIdSchema = z.string().regex(/^[A-Za-z0-9_-]{8,80}$/)
@@ -531,6 +534,41 @@ export async function adminPortal(identity: DecodedIdToken, rawPayload: unknown)
       await ensureTenant(parsed.data)
       const snapshot = await database.ref(`tenants/${parsed.data}/audit`).orderByKey().limitToLast(100).get()
       return Object.entries(objectValue(snapshot.val())).map(([id, value]) => ({ id, ...objectValue(value) })).reverse()
+    }
+    case 'contactMessages': {
+      requireRole(identity, ['platform_administrator'])
+      const snapshot = await database.ref('publicEnquiries').orderByKey().limitToLast(200).get()
+      const messages = Object.entries(objectValue(snapshot.val())).flatMap(([id, value]) => {
+        const raw = objectValue(value)
+        const parsed = AdminEnquirySchema.safeParse({
+          id,
+          name: raw.name,
+          email: raw.email,
+          message: raw.message,
+          receivedAt: raw.receivedAt,
+          updatedAt: raw.updatedAt,
+          status: raw.status,
+        })
+        return parsed.success ? [parsed.data] : []
+      })
+      return AdminEnquiriesSchema.parse(messages.sort((left, right) => right.receivedAt - left.receivedAt))
+    }
+    case 'contactMessageStatus': {
+      requireRole(identity, ['platform_administrator'])
+      const input = UpdateAdminEnquiryStatusInputSchema.safeParse(inputPayload)
+      if (!input.success) throw new ApiError('invalid-argument', 'Choose a valid enquiry and inbox status.')
+      const messageRef = database.ref(`publicEnquiries/${input.data.id}`)
+      const snapshot = await messageRef.get()
+      if (!snapshot.exists()) throw new ApiError('not-found', 'Enquiry not found.')
+      const current = objectValue(snapshot.val())
+      if (!AdminEnquirySchema.safeParse({ ...current, id: input.data.id }).success) throw new ApiError('data-loss', 'This enquiry record is incomplete and cannot be updated.')
+      const audit = auditRecord(identity.uid, 'contact_enquiry_status_changed', 'Contact enquiry status changed', input.data.status, { enquiryId: input.data.id })
+      await database.ref().update({
+        [`publicEnquiries/${input.data.id}/status`]: input.data.status,
+        [`publicEnquiries/${input.data.id}/updatedAt`]: Date.now(),
+        [`systemAudit/${audit.id}`]: audit.record,
+      })
+      return { updated: true }
     }
     case 'staffDirectory': {
       requireRole(identity, ['platform_administrator'])

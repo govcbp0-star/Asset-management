@@ -4,6 +4,7 @@ export type ApiErrorCode =
   | 'permission-denied'
   | 'failed-precondition'
   | 'aborted'
+  | 'resource-exhausted'
   | 'not-found'
   | 'data-loss'
   | 'internal'
@@ -14,6 +15,7 @@ const statusByCode: Record<ApiErrorCode, number> = {
   'permission-denied': 403,
   'failed-precondition': 412,
   aborted: 409,
+  'resource-exhausted': 429,
   'not-found': 404,
   'data-loss': 500,
   internal: 500,

@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
-import { Activity, ArrowRight, BriefcaseBusiness, Check, Clock3, FileCheck2, RefreshCw, ShieldCheck, UsersRound } from 'lucide-react'
+import { Activity, ArrowRight, BriefcaseBusiness, Check, Clock3, FileCheck2, Mail, RefreshCw, ShieldCheck, UsersRound } from 'lucide-react'
 import {
   type AdminAsset,
   type AdminClient,
   type AdminClientDetail,
+  type AdminEnquiry,
   type AdminOverview,
   type AdminStaffUser,
   type AssetCategory,
@@ -21,6 +22,7 @@ import {
   getAdminAudit,
   getAdminClient,
   getAdminClients,
+  getAdminEnquiries,
   getAdminOverview,
   getAdminStaff,
   getAdminTenantOptions,
@@ -28,6 +30,7 @@ import {
   recordAdminValuation,
   reviewAdminAsset,
   setAdminStaffAssignment,
+  updateAdminEnquiryStatus,
   updateAdminOnboarding,
 } from '../../lib/dashboard-api'
 
@@ -366,6 +369,40 @@ export function AdminStaffPage() {
     } catch (cause) { setError(friendlyError(cause)) } finally { setBusy(false) }
   }
   return <div className="admin-page"><AdminHeader title="Staff access" subtitle="Assign provisioned staff to the client accounts they need to work on. Platform administrators retain global access." action={<button className="button button-outline" onClick={() => void load()}><RefreshCw size={15} /> Refresh</button>} />{error && <Notice tone="error">{error}</Notice>}{notice && <Notice tone="success">{notice}</Notice>}{loading ? <div className="dashboard-loading"><Spinner label="Loading staff access" /></div> : staff.length && clients.length ? <section className="dashboard-panel admin-staff-access"><p className="panel-kicker">CLIENT ASSIGNMENTS</p><h2 className="admin-section-heading">Grant or revoke access</h2><p className="admin-muted">Staff roles are provisioned through the trusted staff utility. This screen only assigns client scope; it cannot create or promote staff accounts.</p><div className="admin-form"><label className="admin-field"><span>Staff member</span><select value={staffUid} onChange={(event) => setStaffUid(event.target.value)}>{staff.map((record) => <option key={record.uid} value={record.uid}>{record.displayName} · {statusLabel(record.role)}{record.email ? ` · ${record.email}` : ''}</option>)}</select></label><label className="admin-field"><span>Client account</span><select value={tenantId} onChange={(event) => setTenantId(event.target.value)}>{clients.map((client) => <option key={client.tenantId} value={client.tenantId}>{client.displayName} · {client.tenantId.slice(-8)}</option>)}</select></label><div className="admin-form-footnote admin-field-wide">{selectedStaff ? `${selectedStaff.assignedTenantIds.length} client assignment${selectedStaff.assignedTenantIds.length === 1 ? '' : 's'} for ${selectedStaff.email ?? selectedStaff.displayName}.` : 'Select a staff member.'}</div><button className={`button ${assigned ? 'button-outline' : 'button-dark'}`} disabled={busy || !tenantId || !staffUid} onClick={() => void toggleAssignment()}>{busy ? 'Saving access…' : assigned ? 'Revoke client access' : 'Grant client access'}</button></div></section> : <section className="dashboard-panel admin-empty"><UsersRound size={21} /><h2>{staff.length ? 'No client accounts yet' : 'No provisioned staff found'}</h2><p>{staff.length ? 'Register a client before assigning account access.' : 'Provision a staff account with the trusted utility before assigning client access.'}</p></section>}</div>
+}
+
+export function AdminMessagesPage() {
+  const [messages, setMessages] = useState<AdminEnquiry[]>([])
+  const [loading, setLoading] = useState(true)
+  const [busyId, setBusyId] = useState('')
+  const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
+  const load = useCallback(async () => {
+    setLoading(true); setError('')
+    try { setMessages(await getAdminEnquiries()) } catch (cause) { setError(friendlyError(cause)) } finally { setLoading(false) }
+  }, [])
+  useEffect(() => { let active = true; getAdminEnquiries().then((items) => { if (active) setMessages(items) }).catch((cause) => { if (active) setError(friendlyError(cause)) }).finally(() => { if (active) setLoading(false) }); return () => { active = false } }, [])
+  const newCount = messages.filter((message) => message.status === 'new').length
+
+  async function updateStatus(message: AdminEnquiry, status: 'new' | 'read' | 'resolved') {
+    setBusyId(message.id); setError(''); setNotice('')
+    try {
+      await updateAdminEnquiryStatus({ id: message.id, status })
+      setMessages((current) => current.map((item) => item.id === message.id ? { ...item, status, updatedAt: Date.now() } : item))
+      setNotice(status === 'resolved' ? 'Enquiry marked resolved.' : status === 'read' ? 'Enquiry marked as read.' : 'Enquiry returned to new.')
+    } catch (cause) { setError(friendlyError(cause)) } finally { setBusyId('') }
+  }
+
+  return <div className="admin-page">
+    <AdminHeader title="Messages" subtitle="Read and manage enquiries sent through the public contact form. Only platform administrators can access this inbox." action={<button className="button button-outline" onClick={() => void load()}><RefreshCw size={15} /> Refresh</button>} />
+    {error && <Notice tone="error">{error}</Notice>}{notice && <Notice tone="success">{notice}</Notice>}
+    <div className="admin-section-title"><div><p className="panel-kicker">PUBLIC ENQUIRIES</p><h2>{newCount} new · {messages.length} in the inbox</h2></div></div>
+    {loading ? <div className="dashboard-loading"><Spinner label="Loading enquiries" /></div> : messages.length ? <div className="admin-message-list">{messages.map((message) => <article className="dashboard-panel admin-message-card" key={message.id}>
+      <div className="admin-message-top"><div><p className="panel-kicker">RECEIVED {dateLabel(message.receivedAt)}</p><h2>{message.name}</h2><a className="admin-message-email" href={`mailto:${encodeURIComponent(message.email)}`}><Mail size={14} /> {message.email}</a></div><span className={`admin-status admin-status-${message.status}`}>{statusLabel(message.status)}</span></div>
+      <p className="admin-message-body">{message.message}</p>
+      <div className="admin-actions"><a className="button button-outline" href={`mailto:${encodeURIComponent(message.email)}?subject=${encodeURIComponent('Aurelius Registry enquiry')}`}><Mail size={14} /> Reply by email</a>{message.status !== 'read' && message.status !== 'resolved' && <button className="button button-outline" disabled={busyId === message.id} onClick={() => void updateStatus(message, 'read')}>Mark read</button>}{message.status !== 'resolved' ? <button className="button button-dark" disabled={busyId === message.id} onClick={() => void updateStatus(message, 'resolved')}><Check size={14} /> Mark resolved</button> : <button className="button button-outline" disabled={busyId === message.id} onClick={() => void updateStatus(message, 'new')}>Reopen</button>}</div>
+    </article>)}</div> : <section className="dashboard-panel admin-empty"><Mail size={22} /><h2>No enquiries yet</h2><p>Messages sent from the public contact form will appear here.</p></section>}
+  </div>
 }
 
 export function AdminAuditPage() {
